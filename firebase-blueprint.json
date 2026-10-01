@@ -2,7 +2,7 @@
   "entities": {
     "Project": {
       "title": "Project",
-      "description": "Un proyecto o pedido de diseño de V.A.C. Creative Studio (boda, 15 años, carta digital, etc.)",
+      "description": "Un proyecto o pedido de diseño de V.A.C. Creative Studio",
       "type": "object",
       "properties": {
         "id": {
@@ -11,84 +11,84 @@
         },
         "clientName": {
           "type": "string",
-          "description": "Nombre completo del cliente o contacto principal"
+          "description": "Nombre completo del cliente"
         },
         "clientPhone": {
           "type": "string",
-          "description": "Número de teléfono o WhatsApp del cliente"
+          "description": "Número de teléfono"
         },
         "clientEmail": {
           "type": "string",
-          "description": "Correo electrónico de contacto"
+          "description": "Correo electrónico"
         },
         "type": {
           "type": "string",
-          "description": "Tipo de servicio solicitado"
+          "description": "Tipo de servicio"
         },
         "status": {
           "type": "string",
-          "description": "Estado actual del flujo de trabajo"
+          "description": "Estado del flujo de trabajo"
+        },
+        "trackingCode": {
+          "type": "string",
+          "description": "Código privado de seguimiento VAC-XXXX..."
         },
         "createdAt": {
           "type": "string",
-          "description": "Marca de tiempo ISO de creación"
+          "description": "Fecha de creación"
         },
         "updatedAt": {
           "type": "string",
-          "description": "Marca de tiempo ISO de última actualización"
-        },
-        "generalNotes": {
-          "type": "string",
-          "description": "Notas generales o requerimientos particulares"
-        },
-        "weddingDetails": {
-          "type": "object",
-          "description": "Detalles específicos si el proyecto es una invitación de boda"
-        },
-        "xvDetails": {
-          "type": "object",
-          "description": "Detalles específicos si el proyecto es una invitación de 15 años"
-        },
-        "menuDetails": {
-          "type": "object",
-          "description": "Detalles específicos si el proyecto es una carta o menú digital"
-        },
-        "otherDetails": {
-          "type": "object",
-          "description": "Detalles específicos para otros servicios creativos"
+          "description": "Fecha de actualización"
         }
       },
       "required": ["id", "clientName", "type", "status", "createdAt", "updatedAt"]
     },
-    "UserProfile": {
-      "title": "UserProfile",
-      "description": "Perfil de usuario y roles de acceso en Firebase (RBAC). Sin almacenamiento de contraseñas.",
+    "TrackingItem": {
+      "title": "TrackingItem",
+      "description": "Información pública mínima de seguimiento para clientes por código privado",
       "type": "object",
       "properties": {
-        "uid": {
+        "trackingCode": {
           "type": "string",
-          "description": "Identificador único de Firebase Authentication"
+          "description": "Código secreto VAC-XXXX..."
         },
-        "name": {
+        "projectId": {
           "type": "string",
-          "description": "Nombre o identificación visual del usuario"
+          "description": "ID del proyecto asociado"
         },
-        "email": {
+        "serviceType": {
           "type": "string",
-          "description": "Correo electrónico registrado en Firebase Auth"
+          "description": "Tipo de servicio"
         },
-        "username": {
+        "status": {
           "type": "string",
-          "description": "Nombre de usuario administrativo"
-        },
-        "role": {
-          "type": "string",
-          "description": "Rol de acceso en el sistema (ej. admin)"
+          "description": "Estado del proyecto"
         },
         "createdAt": {
           "type": "string",
-          "description": "Marca de tiempo ISO de creación"
+          "description": "Fecha de creación"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Fecha de actualización"
+        },
+        "publicMessage": {
+          "type": "string",
+          "description": "Mensaje público opcional"
         }
+      },
+      "required": ["trackingCode", "projectId", "serviceType", "status", "createdAt", "updatedAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Perfil de usuario y roles de acceso (RBAC)",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string" }
       },
       "required": ["uid", "role", "email"]
     }
@@ -96,11 +96,15 @@
   "firestore": {
     "/projects/{projectId}": {
       "schema": "Project",
-      "description": "Colección principal de proyectos y órdenes de diseño de V.A.C. Creative Studio"
+      "description": "Colección privada de proyectos"
+    },
+    "/tracking/{trackingCode}": {
+      "schema": "TrackingItem",
+      "description": "Colección pública de seguimiento mediante código privado"
     },
     "/users/{userId}": {
       "schema": "UserProfile",
-      "description": "Colección de perfiles y roles de autorización para acceso a la consola de administración"
+      "description": "Roles de autorización administrativa"
     }
   }
 }

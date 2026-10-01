@@ -17,7 +17,13 @@ import {
   signOutAdmin,
   cleanCompromisedAdminRecord,
   auth,
-  db
+  db,
+  createPublicOrderWithTracking,
+  getPublicTrackingByCode,
+  updateProjectAndTracking,
+  deleteProjectAndTracking,
+  generateMissingTrackingCodesForAdmin,
+  normalizeTrackingCode
 } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
@@ -114,6 +120,13 @@ export default function App() {
   const [trackResultText, setTrackResultText] = useState("");
   const [trackedProjects, setTrackedProjects] = useState<Project[] | null>(null);
 
+  // Secure Tracking State
+  const [trackingInputCode, setTrackingInputCode] = useState("");
+  const [isTrackingLoading, setIsTrackingLoading] = useState(false);
+  const [trackedResultData, setTrackedResultData] = useState<any | null>(null);
+  const [trackingErrorMsg, setTrackingErrorMsg] = useState("");
+  const [newlyCreatedCodeModal, setNewlyCreatedCodeModal] = useState<string | null>(null);
+
   const [adminDisplayName, setAdminDisplayName] = useState<string>("Administrador V.A.C.");
 
   // --- ACTIONS & PERSISTENCE EFFECTS ---
@@ -197,6 +210,10 @@ export default function App() {
     };
   }, [isAdminAuthenticated, viewMode]);
 
+  const saveProjectsToStorage = (updatedList: Project[]) => {
+    setProjects(updatedList);
+  };
+
   // Toggle App Theme (Light/Dark mode)
   const toggleTheme = () => {
     const nextTheme = !isDarkMode;
@@ -237,9 +254,36 @@ export default function App() {
     showToast("Sesión de administrador cerrada en Firebase Auth", "info");
   };
 
-  // Helper: Create/Update project (Secured for Public vs Admin)
+  // Consult secure tracking code
+  const handleConsultTrackingCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanCode = normalizeTrackingCode(trackingInputCode);
+    if (!cleanCode) {
+      setTrackingErrorMsg("Introduce tu código de seguimiento.");
+      setTrackedResultData(null);
+      return;
+    }
+
+    setIsTrackingLoading(true);
+    setTrackingErrorMsg("");
+    setTrackedResultData(null);
+
+    try {
+      const data = await getPublicTrackingByCode(cleanCode);
+      if (data) {
+        setTrackedResultData(data);
+      } else {
+        setTrackingErrorMsg("No encontramos un proyecto asociado a ese código. Verifica que lo hayas escrito correctamente.");
+      }
+    } catch (err: any) {
+      setTrackingErrorMsg(err?.message || "No pudimos consultar el proyecto. Intenta nuevamente.");
+    } finally {
+      setIsTrackingLoading(false);
+    }
+  };
+
+  // Helper: Create/Update project (Secured for Public vs Admin with Tracking Synchronization)
   const handleSaveProject = async (updatedProj: Project) => {
-    // If client, force status to "Pendiente" to satisfy Firestore security rules
     if (!isAdminAuthenticated) {
       updatedProj.status = ProjectStatus.PENDIENTE;
     }
@@ -248,34 +292,36 @@ export default function App() {
     setEditingProject(undefined);
 
     try {
-      await saveProjectToFirestore(updatedProj);
       if (isAdminAuthenticated) {
+        await updateProjectAndTracking(updatedProj);
         const index = projects.findIndex(p => p.id === updatedProj.id);
         const newList = index >= 0
           ? projects.map(p => p.id === updatedProj.id ? updatedProj : p)
           : [updatedProj, ...projects];
         setProjects(newList);
-        showToast(index >= 0 ? "Proyecto actualizado en Firebase" : "¡Nuevo proyecto guardado en Firebase!");
+        showToast(index >= 0 ? "Proyecto y tracking actualizados" : "¡Nuevo proyecto guardado!");
       } else {
-        showToast("¡Solicitud enviada con éxito! Un asesor creativo de V.A.C. te contactará en breve.");
+        const assignedCode = await createPublicOrderWithTracking(updatedProj);
+        setNewlyCreatedCodeModal(assignedCode);
       }
     } catch (err) {
-      console.warn("Error saving project to Firestore:", err);
-      showToast("Error al registrar la solicitud. Verifica tu conexión e intenta de nuevo.", "info");
+      console.warn("Error saving project:", err);
+      showToast("Error al registrar la solicitud. Verifica tu conexión.", "info");
     }
   };
 
-  // Delete project (Admin Only)
+  // Delete project and tracking (Admin Only)
   const handleDeleteProject = async (projId: string) => {
     if (!isAdminAuthenticated) return;
+    const target = projects.find(p => p.id === projId);
     const filtered = projects.filter(p => p.id !== projId);
     setProjects(filtered);
 
     try {
-      await deleteProjectFromFirestore(projId);
-      showToast("Proyecto eliminado de Firebase", "info");
+      await deleteProjectAndTracking(projId, target?.trackingCode);
+      showToast("Proyecto y seguimiento eliminados", "info");
     } catch (err) {
-      console.warn("Error deleting from Firestore", err);
+      console.warn("Error deleting:", err);
       showToast("Error al eliminar en Firebase", "info");
     }
   };
@@ -291,35 +337,26 @@ export default function App() {
     setProjects(newList);
 
     try {
-      await saveProjectToFirestore(updated);
+      await updateProjectAndTracking(updated);
       showToast(`Estado cambiado a: ${newStatus}`);
     } catch (err) {
-      console.warn("Error updating status in Firestore", err);
-      showToast(`Error al actualizar estado en Firebase`, "info");
+      console.warn("Error updating status:", err);
+      showToast("Error al actualizar estado", "info");
     }
   };
 
-  // Track client progress in real-time
-  const handleTrackProgress = (e: React.FormEvent) => {
-    e.preventDefault();
-    const query = progressEmailInput.trim().toLowerCase();
-    if (!query) {
-      setTrackResultText("Por favor, introduce tu correo, teléfono o código para buscar.");
-      setTrackedProjects([]);
-      return;
-    }
-    const found = projects.filter(p => 
-      p.clientEmail.toLowerCase().includes(query) || 
-      p.clientPhone.toLowerCase().includes(query) ||
-      p.clientName.toLowerCase().includes(query) ||
-      p.id.toLowerCase().includes(query)
-    );
-    if (found.length === 0) {
-      setTrackResultText("No encontramos solicitudes activas con ese criterio. Prueba con otro email o haz un pedido.");
-      setTrackedProjects([]);
-    } else {
-      setTrackResultText("");
-      setTrackedProjects(found);
+  // Admin tool: Generate missing tracking codes
+  const handleGenerateMissingTrackingCodes = async () => {
+    if (!isAdminAuthenticated) return;
+    try {
+      const count = await generateMissingTrackingCodesForAdmin(projects);
+      if (count > 0) {
+        showToast(`Se generaron ${count} códigos de seguimiento faltantes.`);
+      } else {
+        showToast("Todos los proyectos ya cuentan con código de seguimiento.");
+      }
+    } catch {
+      showToast("Error al generar códigos faltantes.", "info");
     }
   };
 
@@ -768,170 +805,140 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 3: CONSULTA DE AVANCE EN TIEMPO REAL */}
+          {/* TAB 3: CONSULTA DE AVANCE CON CÓDIGO SECRETO DE SEGUIMIENTO */}
           {clientTab === "tracker" && (
-            <div className="bg-white dark:bg-[#141311] border border-stone-200/80 dark:border-stone-800/80 rounded-3xl p-6 md:p-10 space-y-8 animate-fade-in shadow-sm">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-stone-200/60 dark:border-stone-800">
-                <div className="space-y-1">
+            <div className="bg-white dark:bg-[#141311] border border-stone-200/80 dark:border-stone-800/80 rounded-3xl p-6 md:p-12 space-y-8 animate-fade-in shadow-sm">
+              <div className="max-w-2xl mx-auto space-y-6 text-center">
+                <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <Compass className="w-6 h-6" />
+                </div>
+                <div className="space-y-2">
                   <span className="text-[10px] font-space font-bold uppercase tracking-[0.25em] text-amber-700 dark:text-amber-400">
-                    Seguimiento Privado de Proyecto
+                    Seguimiento Privado por Código
                   </span>
-                  <h3 className="font-serif font-bold text-2xl md:text-3xl text-stone-900 dark:text-stone-100">
+                  <h3 className="font-serif font-bold text-3xl sm:text-4xl text-stone-900 dark:text-stone-100 tracking-tight">
                     Consulta el Estado de tu Invitación
                   </h3>
-                  <p className="text-xs text-stone-500 dark:text-stone-400 font-light">
-                    Introduce el correo electrónico, teléfono o ID de proyecto proporcionado al registrarte.
+                  <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 font-light leading-relaxed max-w-lg mx-auto">
+                    Introduce tu código secreto de seguimiento (ej. <code className="font-mono text-amber-700 dark:text-amber-400">VAC-XXXX-...</code>) proporcionado al registrar tu pedido.
                   </p>
                 </div>
 
-                <form onSubmit={handleTrackProgress} className="flex gap-2 max-w-md w-full">
+                <form onSubmit={handleConsultTrackingCode} className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto w-full pt-2">
                   <input 
                     type="text" 
-                    value={progressEmailInput}
-                    onChange={(e) => setProgressEmailInput(e.target.value)}
-                    placeholder="tucorreo@ejemplo.com o teléfono..."
-                    className="flex-1 px-4 py-2.5 text-xs bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100 border border-stone-200 dark:border-stone-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    value={trackingInputCode}
+                    onChange={(e) => setTrackingInputCode(e.target.value)}
+                    placeholder="VAC-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
+                    className="flex-1 px-4 py-3 text-xs font-mono uppercase bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100 border border-stone-200 dark:border-stone-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500 placeholder:normal-case placeholder:font-sans"
                   />
                   <button 
                     type="submit" 
+                    disabled={isTrackingLoading}
                     id="search-progress-btn"
-                    className="px-5 py-2.5 bg-stone-900 hover:bg-stone-800 text-white dark:bg-amber-400 dark:hover:bg-amber-300 dark:text-stone-950 font-bold font-space text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="px-6 py-3 bg-stone-900 hover:bg-stone-800 text-white dark:bg-amber-400 dark:hover:bg-amber-300 dark:text-stone-950 font-bold font-space text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
                   >
-                    <Search className="w-3.5 h-3.5" />
-                    <span>Buscar</span>
+                    <Search className="w-4 h-4" />
+                    <span>{isTrackingLoading ? "Consultando..." : "Consultar proyecto"}</span>
                   </button>
                 </form>
+
+                {/* Messages / Errors */}
+                {trackingErrorMsg && (
+                  <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 rounded-2xl text-xs text-red-700 dark:text-red-400 flex items-center justify-center gap-2 max-w-md mx-auto">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{trackingErrorMsg}</span>
+                  </div>
+                )}
               </div>
 
-              {/* Messages */}
-              {trackResultText && (
-                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{trackResultText}</span>
-                </div>
-              )}
+              {/* Tracked Result Display */}
+              {trackedResultData && (
+                <div className="max-w-3xl mx-auto space-y-8 pt-6 border-t border-stone-200/80 dark:border-stone-800 animate-fade-in">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4">
+                    <div>
+                      <span className="text-[10px] uppercase font-mono text-amber-700 dark:text-amber-400 font-bold block mb-1">
+                        Servicio: {trackedResultData.serviceType} · Código: {trackedResultData.trackingCode}
+                      </span>
+                      <h4 className="font-serif font-bold text-stone-900 dark:text-stone-50 text-2xl">
+                        Estado Actual: <span className="text-amber-600 dark:text-amber-400">{trackedResultData.status}</span>
+                      </h4>
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <span className="text-[11px] text-stone-400 block font-light">
+                        Actualizado: {new Date(trackedResultData.updatedAt || trackedResultData.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
 
-              {/* Tracked Projects Results */}
-              {trackedProjects && trackedProjects.length > 0 ? (
-                <div className="space-y-8 pt-2">
-                  <h4 className="text-xs font-bold uppercase tracking-[0.2em] font-space text-amber-700 dark:text-amber-400">
-                    Proyectos Activos Vinculados ({trackedProjects.length})
-                  </h4>
-                  
-                  {trackedProjects.map((proj) => {
-                    const getStatusStepIndex = (status: ProjectStatus) => {
-                      switch (status) {
-                        case ProjectStatus.PENDIENTE: return 0;
-                        case ProjectStatus.EN_DISENO: return 1;
-                        case ProjectStatus.EN_REVISION: return 2;
-                        case ProjectStatus.APROBADO: return 3;
-                        case ProjectStatus.ENTREGADO: return 4;
-                        default: return 0;
-                      }
-                    };
+                  {trackedResultData.publicMessage && (
+                    <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs text-stone-800 dark:text-stone-200 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>{trackedResultData.publicMessage}</span>
+                    </div>
+                  )}
 
-                    const currentIdx = getStatusStepIndex(proj.status);
+                  {/* Visual Step Progress */}
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-6 pt-4">
+                    {([
+                      { title: "Recibido", desc: "Briefing registrado en cola." },
+                      { title: "En Diseño", desc: "Composición tipográfica y arte." },
+                      { title: "Borrador Revisión", desc: "Boceto interactivo compartido." },
+                      { title: "Aprobado", desc: "Validación de dirección lista." },
+                      { title: "Listo / Entregado", desc: "Enlace final autodesplegado." }
+                    ]).map((st, stepIdx) => {
+                      const getStatusStepIndex = (status: string) => {
+                        switch (status) {
+                          case ProjectStatus.PENDIENTE: return 0;
+                          case ProjectStatus.EN_DISENO: return 1;
+                          case ProjectStatus.EN_REVISION: return 2;
+                          case ProjectStatus.APROBADO: return 3;
+                          case ProjectStatus.ENTREGADO: return 4;
+                          default: return 0;
+                        }
+                      };
+                      const currentIdx = getStatusStepIndex(trackedResultData.status);
+                      const isVisited = currentIdx >= stepIdx;
+                      const isCurrent = currentIdx === stepIdx;
 
-                    const steps = [
-                      { title: "Recibido", desc: "Briefing registrado en cola del diseñador." },
-                      { title: "En Diseño", desc: "Composición tipográfica, música e imágenes." },
-                      { title: "Borrador Revisión", desc: "Boceto interactivo compartido para feedback." },
-                      { title: "Aprobado", desc: "Validación de dirección y pases completada." },
-                      { title: "Listo / Entregado", desc: "Enlace final autodesplegado online." }
-                    ];
-
-                    return (
-                      <div 
-                        key={proj.id} 
-                        className="bg-stone-50 dark:bg-stone-900/60 border border-stone-200/80 dark:border-stone-800 rounded-3xl p-6 md:p-8 space-y-6"
-                      >
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-stone-200/60 dark:border-stone-800 pb-4">
+                      return (
+                        <div key={stepIdx} className="space-y-2 relative">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold transition-colors ${
+                              isCurrent 
+                                ? "bg-amber-500 text-stone-950 ring-4 ring-amber-500/20" 
+                                : isVisited 
+                                  ? "bg-stone-900 text-white dark:bg-amber-400 dark:text-stone-950" 
+                                  : "bg-stone-100 dark:bg-stone-800 text-stone-400 border border-stone-200 dark:border-stone-700"
+                            }`}>
+                              {stepIdx + 1}
+                            </div>
+                            <div className={`h-0.5 flex-1 ${isVisited ? "bg-stone-900 dark:bg-amber-400" : "bg-stone-200 dark:bg-stone-800"}`} />
+                          </div>
                           <div>
-                            <span className="text-[10px] uppercase font-mono text-amber-700 dark:text-amber-400 font-bold block mb-1">
-                              {proj.type} · ID: {proj.id}
-                            </span>
-                            <h4 className="font-serif font-bold text-stone-900 dark:text-stone-50 text-2xl">
-                              Ficha de {proj.clientName}
-                            </h4>
-                          </div>
-                          <div className="text-left sm:text-right">
-                            <span className="text-[11px] text-stone-400 block font-light">
-                              Última modificación: {new Date(proj.updatedAt || proj.createdAt).toLocaleDateString()}
-                            </span>
-                            <span className="text-xs uppercase font-space font-extrabold text-amber-700 dark:text-amber-400">
-                              Estado: {proj.status}
-                            </span>
+                            <h5 className={`font-space text-xs font-bold uppercase tracking-wide ${isCurrent ? "text-amber-700 dark:text-amber-400" : "text-stone-900 dark:text-stone-100"}`}>
+                              {st.title}
+                            </h5>
+                            <p className="text-[11px] text-stone-500 dark:text-stone-400 font-light mt-0.5 leading-relaxed">
+                              {st.desc}
+                            </p>
                           </div>
                         </div>
+                      );
+                    })}
+                  </div>
 
-                        {/* Visual Step Progress */}
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 pt-2">
-                          {steps.map((st, stepIdx) => {
-                            const isVisited = currentIdx >= stepIdx;
-                            const isCurrent = currentIdx === stepIdx;
-                            
-                            return (
-                              <div key={stepIdx} className="space-y-2 relative">
-                                <div className="flex items-center gap-2">
-                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
-                                    isVisited
-                                    ? "bg-amber-500 text-stone-950 shadow-sm font-space"
-                                    : "bg-stone-200 dark:bg-stone-800 text-stone-400"
-                                  } ${isCurrent ? "ring-4 ring-amber-500/25" : ""}`}>
-                                    {stepIdx + 1}
-                                  </div>
-                                  {stepIdx < 4 && (
-                                    <div className={`hidden md:block flex-1 h-0.5 ${
-                                      currentIdx > stepIdx ? "bg-amber-500" : "bg-stone-200 dark:bg-stone-800"
-                                    }`} />
-                                  )}
-                                </div>
-                                <div>
-                                  <span className={`text-xs font-bold block leading-tight font-space uppercase ${isVisited ? "text-stone-900 dark:text-stone-100" : "text-stone-400"}`}>
-                                    {st.title}
-                                  </span>
-                                  <span className="text-[11px] text-stone-500 dark:text-stone-400 font-light mt-0.5 block leading-normal">
-                                    {st.desc}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* Actions */}
-                        <div className="pt-4 border-t border-stone-200/60 dark:border-stone-800 flex flex-wrap items-center justify-between gap-3">
-                          <a
-                            href={`https://wa.me/525512345678?text=${encodeURIComponent(`Hola V.A.C. Creative, deseo consultar una duda sobre mi proyecto ${proj.type} (ID: ${proj.id}) de ${proj.clientName}.`)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white dark:bg-stone-800 dark:hover:bg-stone-700 rounded-xl text-xs font-space font-bold flex items-center gap-2 transition-all"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5 text-amber-400" />
-                            <span>Contactar Asesor por este Pedido</span>
-                          </a>
-
-                          <button
-                            onClick={() => setActiveSummaryProject(proj)}
-                            className="px-4 py-2 border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-800 dark:text-stone-200 rounded-xl text-xs font-space font-bold tracking-wide transition-all cursor-pointer"
-                          >
-                            Ver Resumen del Briefing Completo
-                          </button>
-                        </div>
-
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : trackedProjects && trackedProjects.length === 0 ? (
-                <div className="p-10 border border-dashed border-stone-200 dark:border-stone-800 rounded-3xl text-center bg-stone-50/50 dark:bg-stone-900/50">
-                  <HelpCircle className="w-8 h-8 mx-auto text-stone-400 mb-2" />
-                  <p className="text-xs font-bold text-stone-700 dark:text-stone-300">Ningún resultado activo encontrado</p>
-                  <p className="text-[11px] text-stone-400 mt-1">Verifique el número de teléfono o correo registrado en su pedido.</p>
-                </div>
-              ) : (
-                <div className="text-center p-6 text-stone-400 text-xs font-light">
-                  Ingresa tu correo o teléfono registrado para visualizar tu avance en tiempo real.
+                  <div className="pt-4 border-t border-stone-200/60 dark:border-stone-800 text-center">
+                    <a
+                      href="https://wa.me/525512345678?text=Hola%20V.A.C.%20Creative,%20deseo%20consultar%20sobre%20el%20seguimiento%20de%20mi%20pedido."
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-space font-bold inline-flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Contactar Asesor por WhatsApp</span>
+                    </a>
+                  </div>
                 </div>
               )}
             </div>
@@ -982,6 +989,13 @@ export default function App() {
               </span>
             </div>
             <div className="flex items-center gap-3 self-end sm:self-auto">
+              <button
+                onClick={handleGenerateMissingTrackingCodes}
+                className="px-3 py-1 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 rounded-lg text-xs font-semibold font-space transition-colors cursor-pointer"
+                title="Genera códigos de rastreo VAC para proyectos antiguos"
+              >
+                Generar códigos faltantes
+              </button>
               <button 
                 onClick={() => setViewMode("client")}
                 className="text-amber-400 hover:text-amber-300 font-space text-xs font-bold tracking-wider uppercase cursor-pointer"
@@ -1141,6 +1155,51 @@ export default function App() {
           project={activePromptProject}
           onClose={() => setActivePromptProject(undefined)}
         />
+      )}
+
+      {/* NEWLY CREATED ORDER TRACKING CODE MODAL */}
+      {newlyCreatedCodeModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="relative max-w-md w-full bg-[#FAF9F5] dark:bg-[#121110] text-stone-900 dark:text-stone-100 rounded-3xl p-8 shadow-2xl border border-stone-200 dark:border-stone-800 space-y-6 text-center animate-fade-in">
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Check className="w-6 h-6 stroke-[3]" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-[10px] font-space font-bold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-400">
+                ¡Solicitud Registrada Correctamente!
+              </span>
+              <h3 className="font-serif font-bold text-2xl text-stone-950 dark:text-stone-50">
+                Tu Código Privado de Seguimiento
+              </h3>
+              <p className="text-xs text-stone-500 dark:text-stone-400 font-light leading-relaxed">
+                Guarda este código con cuidado. Lo necesitarás en la pestaña <strong className="text-stone-900 dark:text-white">“Rastreo de Proyecto”</strong> para consultar el estado en tiempo real.
+              </p>
+            </div>
+
+            <div className="p-4 bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl flex items-center justify-between gap-3 font-mono text-sm font-bold text-amber-700 dark:text-amber-400">
+              <span className="truncate">{newlyCreatedCodeModal}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(newlyCreatedCodeModal);
+                  showToast("¡Código copiado al portapapeles!", "success");
+                }}
+                className="px-3.5 py-1.5 bg-stone-950 text-white dark:bg-amber-400 dark:text-stone-950 rounded-xl text-xs font-space font-bold uppercase tracking-wider cursor-pointer shrink-0"
+              >
+                Copiar
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setNewlyCreatedCodeModal(null)}
+              className="w-full py-3.5 bg-stone-900 hover:bg-stone-800 text-white dark:bg-amber-500 dark:hover:bg-amber-400 dark:text-stone-950 rounded-xl text-xs font-bold font-space uppercase tracking-widest transition-colors cursor-pointer"
+            >
+              Entendido & Cerrar
+            </button>
+          </div>
+        </div>
       )}
 
     </div>

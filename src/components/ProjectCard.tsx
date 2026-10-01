@@ -113,6 +113,26 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         </div>
       </div>
 
+      {/* Tracking Code badge */}
+      {project.trackingCode && (
+        <div className="flex items-center justify-between bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 px-3 py-2 rounded-xl text-xs font-mono">
+          <div className="truncate pr-2">
+            <span className="text-[10px] text-stone-400 block uppercase font-space">Código de Seguimiento</span>
+            <span className="text-amber-700 dark:text-amber-400 font-bold">{project.trackingCode}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard.writeText(project.trackingCode!);
+              alert("¡Código de seguimiento copiado al portapapeles!");
+            }}
+            className="px-2.5 py-1 bg-stone-900 text-white dark:bg-amber-400 dark:text-stone-950 rounded-lg text-[10px] font-bold font-space uppercase cursor-pointer shrink-0"
+          >
+            Copiar
+          </button>
+        </div>
+      )}
+
       {/* Event description summary */}
       <div className="pt-2 text-xs">
         {project.type === ProjectType.BODA && project.weddingDetails && (

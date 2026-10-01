@@ -129,6 +129,7 @@ export interface Project {
   status: ProjectStatus;
   createdAt: string;
   updatedAt: string;
+  trackingCode?: string;
   
   // Dynamic fields based on type
   weddingDetails?: WeddingDetails;

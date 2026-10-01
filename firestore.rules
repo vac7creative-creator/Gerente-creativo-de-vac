@@ -7,6 +7,12 @@ service cloud.firestore {
       return id is string && id.size() > 0 && id.size() <= 128;
     }
 
+    function isValidTrackingCode(code) {
+      return code is string 
+        && code.size() == 29 
+        && code.matches('^VAC-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$');
+    }
+
     function incoming() {
       return request.resource.data;
     }
@@ -15,7 +21,6 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Role check: verifies the user document in /users exists and has role == 'admin'
     function isAdmin() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
@@ -30,9 +35,19 @@ service cloud.firestore {
         && data.status is string && data.status.size() <= 50;
     }
 
-    // Projects collection:
-    // ADMIN: full get, list, create, update, delete
-    // PUBLIC: ONLY create a new project with initial status "Pendiente"
+    function isValidPublicTrackingCreate() {
+      return incoming().keys().hasOnly(['trackingCode', 'projectId', 'serviceType', 'status', 'createdAt', 'updatedAt', 'publicMessage'])
+        && incoming().trackingCode is string
+        && isValidTrackingCode(incoming().trackingCode)
+        && incoming().trackingCode == request.resource.id
+        && incoming().projectId is string && incoming().projectId.size() <= 128
+        && incoming().serviceType is string && incoming().serviceType.size() <= 100
+        && incoming().status == "Pendiente"
+        && incoming().createdAt is string
+        && incoming().updatedAt is string;
+    }
+
+    // Projects collection: Private for admin, public create only
     match /projects/{projectId} {
       allow get, list, update, delete: if isAdmin();
       allow create: if isValidId(projectId)
@@ -40,15 +55,21 @@ service cloud.firestore {
                     && (isAdmin() || incoming().status == "Pendiente");
     }
 
-    // Users collection for authorization & RBAC:
-    // READ: Only the signed-in user themselves or an admin
-    // WRITE (create, update, delete): ONLY existing verified admin (no self-promotion)
+    // Tracking collection: Public get by exact secure tracking code, no listing, strict creation rules
+    match /tracking/{trackingCode} {
+      allow get: if isValidTrackingCode(trackingCode);
+      allow list: if false;
+      allow create: if isAdmin() || isValidPublicTrackingCreate();
+      allow update, delete: if isAdmin();
+    }
+
+    // Users collection for RBAC authorization
     match /users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow create, update, delete: if isAdmin();
     }
 
-    // Health check test doc: READ only, NO public write
+    // Health check test doc: Read only
     match /test/{docId} {
       allow read: if true;
       allow write: if false;

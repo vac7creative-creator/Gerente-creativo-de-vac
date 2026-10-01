@@ -24,7 +24,7 @@ import {
   writeBatch
 } from "firebase/firestore";
 import firebaseConfig from "../firebase-applet-config.json";
-import { Project } from "./types";
+import { Project, ProjectStatus } from "./types";
 
 // 1. Initialize Firebase App and Firestore
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
@@ -141,7 +141,7 @@ export function subscribeToProjects(
   );
 }
 
-// 6. Save or Update Project (Admin can update, Public can create with initial status "Pendiente")
+// 6. Save or Update Project (Admin can update)
 export async function saveProjectToFirestore(project: Project): Promise<void> {
   const docPath = `projects/${project.id}`;
   try {
@@ -210,10 +210,6 @@ export function resolveAdminEmail(usernameOrEmail: string): string {
   return `${clean}@vaccreative.studio`;
 }
 
-/**
- * Validates admin login exclusively using signInWithEmailAndPassword.
- * Strictly forbids automatic user creation or auto-promotion to role: "admin".
- */
 export async function signInAdminWithFirebaseAuth(
   usernameOrEmail: string,
   passInput: string
@@ -221,7 +217,6 @@ export async function signInAdminWithFirebaseAuth(
   const email = resolveAdminEmail(usernameOrEmail);
 
   try {
-    // 1. Authenticate against Firebase Authentication (NO user creation)
     const userCredential = await signInWithEmailAndPassword(auth, email, passInput);
     const user = userCredential.user;
 
@@ -232,12 +227,10 @@ export async function signInAdminWithFirebaseAuth(
       };
     }
 
-    // 2. Consult Firestore users/{uid} for role authorization (NO auto-creation of role admin)
     const userDocRef = doc(db, "users", user.uid);
     const userSnap = await getDoc(userDocRef);
 
     if (!userSnap.exists()) {
-      // User is in Firebase Auth but has no entry in users collection
       await signOut(auth);
       return { 
         success: false, 
@@ -247,11 +240,9 @@ export async function signInAdminWithFirebaseAuth(
 
     const userData = userSnap.data();
     if (userData?.role === "admin") {
-      // Validated administrator
       cleanCompromisedAdminRecord().catch(() => {});
       return { success: true };
     } else {
-      // Account exists but role is not admin
       await signOut(auth);
       return { 
         success: false, 
@@ -290,9 +281,6 @@ export async function signInAdminWithFirebaseAuth(
   }
 }
 
-/**
- * Signs out admin and terminates any active Firebase session.
- */
 export async function signOutAdmin(): Promise<void> {
   try {
     await signOut(auth);
@@ -301,9 +289,6 @@ export async function signOutAdmin(): Promise<void> {
   }
 }
 
-/**
- * Checks if the currently signed-in user has verified admin role in Firestore.
- */
 export async function checkCurrentUserIsAdmin(): Promise<{ isAdmin: boolean; user: User | null; roleName?: string }> {
   const currentUser = auth.currentUser;
   if (!currentUser) {
@@ -323,4 +308,187 @@ export async function checkCurrentUserIsAdmin(): Promise<{ isAdmin: boolean; use
     console.warn("Could not verify admin role:", error);
   }
   return { isAdmin: false, user: currentUser };
+}
+
+// ==========================================
+// 12. SECURE TRACKING SYSTEM FUNCTIONS
+// ==========================================
+
+export function generateTrackingCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const segments = 6;
+  const segmentLength = 4;
+  const parts: string[] = ["VAC"];
+  
+  for (let s = 0; s < segments; s++) {
+    let seg = "";
+    const randomValues = new Uint8Array(segmentLength);
+    if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+      crypto.getRandomValues(randomValues);
+    } else {
+      for (let i = 0; i < segmentLength; i++) {
+        randomValues[i] = Math.floor(Math.random() * chars.length);
+      }
+    }
+    for (let i = 0; i < segmentLength; i++) {
+      seg += chars[randomValues[i] % chars.length];
+    }
+    parts.push(seg);
+  }
+  return parts.join("-");
+}
+
+export function normalizeTrackingCode(input: string): string {
+  if (!input) return "";
+  return input.trim().toUpperCase().replace(/[^A-Z0-9-]/g, "");
+}
+
+export function isValidTrackingCodeFormat(code: string): boolean {
+  const regex = /^VAC-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+  return regex.test(code);
+}
+
+export async function createPublicOrderWithTracking(project: Project): Promise<string> {
+  const projectId = project.id || (typeof crypto !== "undefined" && crypto.randomUUID ? `proj_${crypto.randomUUID()}` : `proj_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`);
+  const trackingCode = project.trackingCode || generateTrackingCode();
+  const now = new Date().toISOString();
+
+  const projectData: Project = {
+    ...project,
+    id: projectId,
+    trackingCode,
+    status: ProjectStatus.PENDIENTE,
+    createdAt: project.createdAt || now,
+    updatedAt: now
+  };
+
+  const trackingData = {
+    trackingCode,
+    projectId,
+    serviceType: projectData.type,
+    status: ProjectStatus.PENDIENTE,
+    createdAt: projectData.createdAt,
+    updatedAt: now,
+    publicMessage: "Pedido recibido en cola de diseño del atelier."
+  };
+
+  try {
+    const batch = writeBatch(db);
+    const projRef = doc(db, "projects", projectId);
+    const trackRef = doc(db, "tracking", trackingCode);
+
+    batch.set(projRef, sanitizeForFirestore(projectData));
+    batch.set(trackRef, sanitizeForFirestore(trackingData));
+
+    await batch.commit();
+    return trackingCode;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `projects/${projectId}`);
+    throw error;
+  }
+}
+
+export async function getPublicTrackingByCode(code: string): Promise<any> {
+  const normalized = normalizeTrackingCode(code);
+  if (!isValidTrackingCodeFormat(normalized)) {
+    throw new Error("El formato del código de seguimiento no es válido.");
+  }
+
+  try {
+    const trackDocRef = doc(db, "tracking", normalized);
+    const snap = await getDoc(trackDocRef);
+    if (!snap.exists()) {
+      return null;
+    }
+    return snap.data();
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, `tracking/${normalized}`);
+    throw error;
+  }
+}
+
+export async function updateProjectAndTracking(project: Project): Promise<void> {
+  if (!project.id) throw new Error("Project ID is missing for update.");
+  const trackingCode = project.trackingCode || generateTrackingCode();
+  const now = new Date().toISOString();
+
+  const updatedProject: Project = {
+    ...project,
+    trackingCode,
+    updatedAt: now
+  };
+
+  const trackingData = {
+    trackingCode,
+    projectId: project.id,
+    serviceType: project.type,
+    status: project.status,
+    createdAt: project.createdAt,
+    updatedAt: now,
+    publicMessage: `Actualizado a estado: ${project.status}`
+  };
+
+  try {
+    const batch = writeBatch(db);
+    const projRef = doc(db, "projects", project.id);
+    const trackRef = doc(db, "tracking", trackingCode);
+
+    batch.set(projRef, sanitizeForFirestore(updatedProject), { merge: true });
+    batch.set(trackRef, sanitizeForFirestore(trackingData), { merge: true });
+
+    await batch.commit();
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `projects/${project.id}`);
+  }
+}
+
+export async function deleteProjectAndTracking(projectId: string, trackingCode?: string): Promise<void> {
+  try {
+    const batch = writeBatch(db);
+    const projRef = doc(db, "projects", projectId);
+    batch.delete(projRef);
+
+    if (trackingCode) {
+      const trackRef = doc(db, "tracking", trackingCode);
+      batch.delete(trackRef);
+    }
+
+    await batch.commit();
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `projects/${projectId}`);
+  }
+}
+
+export async function generateMissingTrackingCodesForAdmin(projects: Project[]): Promise<number> {
+  let count = 0;
+  const batch = writeBatch(db);
+  const now = new Date().toISOString();
+
+  for (const proj of projects) {
+    if (!proj.trackingCode) {
+      const trackingCode = generateTrackingCode();
+      const updatedProj = { ...proj, trackingCode, updatedAt: now };
+      const trackingData = {
+        trackingCode,
+        projectId: proj.id,
+        serviceType: proj.type,
+        status: proj.status,
+        createdAt: proj.createdAt || now,
+        updatedAt: now,
+        publicMessage: "Código de seguimiento generado por dirección."
+      };
+
+      const projRef = doc(db, "projects", proj.id);
+      const trackRef = doc(db, "tracking", trackingCode);
+
+      batch.set(projRef, sanitizeForFirestore(updatedProj), { merge: true });
+      batch.set(trackRef, sanitizeForFirestore(trackingData), { merge: true });
+      count++;
+    }
+  }
+
+  if (count > 0) {
+    await batch.commit();
+  }
+  return count;
 }
