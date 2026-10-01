@@ -4,8 +4,8 @@
  */
 
 import React, { useState } from "react";
-import { Lock, Eye, EyeOff, X, KeyRound, ShieldAlert, ArrowRight, Sparkles } from "lucide-react";
-import { verifyAdminCredentials } from "../firebase";
+import { Lock, Eye, EyeOff, X, ShieldAlert, ArrowRight, ShieldCheck } from "lucide-react";
+import { signInAdminWithFirebaseAuth } from "../firebase";
 
 interface AdminLoginModalProps {
   isOpen: boolean;
@@ -18,7 +18,7 @@ export default function AdminLoginModal({
   onClose,
   onLoginSuccess
 }: AdminLoginModalProps) {
-  const [username, setUsername] = useState("");
+  const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -28,8 +28,8 @@ export default function AdminLoginModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim() || !password.trim()) {
-      setErrorMsg("Introduce tu usuario y contraseña de administrador.");
+    if (!usernameOrEmail.trim() || !password.trim()) {
+      setErrorMsg("Introduce tu usuario o correo y contraseña de administrador.");
       return;
     }
 
@@ -37,26 +37,20 @@ export default function AdminLoginModal({
     setErrorMsg("");
 
     try {
-      const isValid = await verifyAdminCredentials(username, password);
-      if (isValid) {
+      const result = await signInAdminWithFirebaseAuth(usernameOrEmail, password);
+      if (result.success) {
         sessionStorage.setItem("vac_admin_logged", "true");
-        localStorage.setItem("vac_admin_user", username.trim());
+        localStorage.setItem("vac_admin_user", usernameOrEmail.trim());
         onLoginSuccess();
         onClose();
       } else {
-        setErrorMsg("Credenciales no válidas. Verifica usuario y contraseña.");
+        setErrorMsg(result.error || "Credenciales no válidas en Firebase Authentication.");
       }
     } catch {
-      setErrorMsg("Error al conectar con el servidor de autenticación.");
+      setErrorMsg("Error al conectar con el servidor de Firebase Authentication.");
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleFillDemo = () => {
-    setUsername("Vlad01");
-    setPassword("Dis321");
-    setErrorMsg("");
   };
 
   return (
@@ -82,29 +76,30 @@ export default function AdminLoginModal({
               <Lock className="w-5 h-5" />
             </div>
             <span className="text-[10px] tracking-[0.2em] uppercase font-space font-semibold text-amber-700 dark:text-amber-400 block pt-1">
-              Acceso Restringido · Firebase
+              Acceso Restringido · Firebase Auth
             </span>
             <h3 className="text-2xl font-serif font-bold text-stone-900 dark:text-stone-50 tracking-tight">
               Consola de Dirección
             </h3>
             <p className="text-xs text-stone-500 dark:text-stone-400 font-light">
-              Ingresa las credenciales autorizadas del estudio para gestionar proyectos, briefs y base de datos.
+              Ingresa con tus credenciales autenticadas en Firebase Authentication para gestionar el atelier.
             </p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             
-            {/* Username */}
+            {/* Username or Email */}
             <div className="space-y-1.5">
               <label className="text-xs font-space font-medium text-stone-700 dark:text-stone-300">
-                Usuario Maestro
+                Usuario o Correo Administrador
               </label>
               <input
                 type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Ej. Vlad01"
+                value={usernameOrEmail}
+                onChange={(e) => setUsernameOrEmail(e.target.value)}
+                placeholder="Ej. Vlad01 o correo electrónico"
+                autoComplete="username"
                 className="w-full px-4 py-2.5 text-sm bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
               />
             </div>
@@ -120,6 +115,7 @@ export default function AdminLoginModal({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   className="w-full pl-4 pr-10 py-2.5 text-sm bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
                 />
                 <button
@@ -144,21 +140,17 @@ export default function AdminLoginModal({
               disabled={isLoading}
               className="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white dark:bg-amber-500 dark:hover:bg-amber-400 dark:text-stone-950 rounded-xl text-xs font-bold font-space uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
             >
-              <span>{isLoading ? "Verificando en Firebase..." : "Ingresar a la Consola"}</span>
+              <span>{isLoading ? "Validando en Firebase..." : "Iniciar Sesión"}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
 
-          {/* Quick Helper */}
-          <div className="pt-2 border-t border-stone-200/60 dark:border-stone-800/80 text-center">
-            <button
-              type="button"
-              onClick={handleFillDemo}
-              className="text-[11px] text-amber-700 dark:text-amber-400 hover:underline font-mono inline-flex items-center gap-1 cursor-pointer"
-            >
-              <Sparkles className="w-3 h-3" />
-              <span>Autocompletar acceso maestro (Vlad01 / Dis321)</span>
-            </button>
+          {/* Security Assurance Footer */}
+          <div className="pt-3 border-t border-stone-200/60 dark:border-stone-800/80 text-center">
+            <div className="text-[11px] text-stone-400 dark:text-stone-500 inline-flex items-center gap-1.5 font-light">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Autenticación criptográfica protegida por Firebase Auth</span>
+            </div>
           </div>
 
         </div>

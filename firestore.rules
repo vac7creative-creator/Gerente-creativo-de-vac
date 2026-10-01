@@ -11,6 +11,17 @@ service cloud.firestore {
       return request.resource.data;
     }
 
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin"
+      );
+    }
+
     function isValidProject(data) {
       return data.id is string && data.id.size() <= 128
         && data.clientName is string && data.clientName.size() <= 200
@@ -27,12 +38,13 @@ service cloud.firestore {
       allow delete: if isValidId(projectId);
     }
 
-    // Admins collection
-    match /admins/{adminId} {
-      allow get: if isValidId(adminId);
-      allow list: if false;
-      allow create, update: if isValidId(adminId);
-      allow delete: if false;
+    // Users collection for RBAC authorization (no passwords stored)
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
     }
 
     // Connection health check path

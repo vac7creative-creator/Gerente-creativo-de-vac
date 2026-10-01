@@ -70,7 +70,7 @@ export default function StatsDashboard({
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-space font-bold uppercase tracking-[0.25em] text-amber-700 dark:text-amber-400">
-              Consola Maestra de Dirección · Vlad01
+              Consola Maestra de Dirección · Administrador V.A.C.
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-stone-950 dark:text-stone-50 tracking-tight">

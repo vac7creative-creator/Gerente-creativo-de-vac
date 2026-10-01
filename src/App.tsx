@@ -14,7 +14,8 @@ import {
   deleteProjectFromFirestore, 
   syncAllProjectsToFirestore, 
   testConnection,
-  ensureAdminUserCreated
+  signOutAdmin,
+  cleanCompromisedAdminRecord
 } from "./firebase";
 
 // Components
@@ -133,8 +134,8 @@ export default function App() {
 
   // 2. Firebase Firestore & Admin Initialization
   useEffect(() => {
-    // A. Seed admin credentials Vlad01 / Dis321 into Firestore
-    ensureAdminUserCreated();
+    // A. Clean up old compromised credentials from Firestore if any exist
+    cleanCompromisedAdminRecord().catch(() => {});
 
     // B. First load cached data immediately for instant speed
     const savedProjects = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -221,11 +222,13 @@ export default function App() {
     }
   };
 
-  const handleAdminLogout = () => {
+  const handleAdminLogout = async () => {
+    await signOutAdmin();
     sessionStorage.removeItem("vac_admin_logged");
+    localStorage.removeItem("vac_admin_user");
     setIsAdminAuthenticated(false);
     setViewMode("client");
-    showToast("Sesión de administrador cerrada", "info");
+    showToast("Sesión de administrador cerrada en Firebase Auth", "info");
   };
 
   // Helper: Create/Update project
@@ -963,7 +966,7 @@ export default function App() {
             <div className="flex items-center gap-3">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
               <span>
-                Sesión autenticada como <strong>Vlad01</strong> · Base de datos <strong>Firebase Firestore</strong> en tiempo real ({projects.length} proyectos).
+                Sesión autenticada en <strong>Firebase Auth</strong> ({localStorage.getItem("vac_admin_user") || "Administrador V.A.C."}) · Base de datos <strong>Firestore</strong> en tiempo real ({projects.length} proyectos).
               </span>
             </div>
             <div className="flex items-center gap-3 self-end sm:self-auto">
@@ -1084,7 +1087,8 @@ export default function App() {
         onLoginSuccess={() => {
           setIsAdminAuthenticated(true);
           setViewMode("admin");
-          showToast("Bienvenido, Vlad01. Acceso a consola autorizado.");
+          const loggedName = localStorage.getItem("vac_admin_user") || "Administrador";
+          showToast(`Bienvenido, ${loggedName}. Acceso validado por Firebase Auth.`);
         }}
       />
 

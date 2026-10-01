@@ -60,29 +60,37 @@
       },
       "required": ["id", "clientName", "type", "status", "createdAt", "updatedAt"]
     },
-    "AdminUser": {
-      "title": "AdminUser",
-      "description": "Credenciales y roles administrativos del estudio en Firebase",
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Perfil de usuario y roles de acceso en Firebase (RBAC). Sin almacenamiento de contraseñas.",
       "type": "object",
       "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Identificador único de Firebase Authentication"
+        },
+        "name": {
+          "type": "string",
+          "description": "Nombre o identificación visual del usuario"
+        },
+        "email": {
+          "type": "string",
+          "description": "Correo electrónico registrado en Firebase Auth"
+        },
         "username": {
           "type": "string",
-          "description": "Nombre de usuario único de administración"
-        },
-        "password": {
-          "type": "string",
-          "description": "Contraseña de acceso seguro"
+          "description": "Nombre de usuario administrativo"
         },
         "role": {
           "type": "string",
-          "description": "Rol de acceso del usuario (admin / superadmin)"
+          "description": "Rol de acceso en el sistema (ej. admin)"
         },
-        "updatedAt": {
+        "createdAt": {
           "type": "string",
-          "description": "Marca de tiempo ISO de actualización"
+          "description": "Marca de tiempo ISO de creación"
         }
       },
-      "required": ["username", "password", "role"]
+      "required": ["uid", "role", "email"]
     }
   },
   "firestore": {
@@ -90,9 +98,9 @@
       "schema": "Project",
       "description": "Colección principal de proyectos y órdenes de diseño de V.A.C. Creative Studio"
     },
-    "/admins/{adminId}": {
-      "schema": "AdminUser",
-      "description": "Colección de credenciales y roles autorizados para el acceso a la consola de administración"
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Colección de perfiles y roles de autorización para acceso a la consola de administración"
     }
   }
 }
