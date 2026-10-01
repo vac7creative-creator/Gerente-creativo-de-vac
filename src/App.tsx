@@ -486,28 +486,15 @@ export default function App() {
                 <span className="font-serif font-bold tracking-tight text-stone-950 dark:text-stone-50 text-xl">
                   V.A.C. Creative
                 </span>
-                <span className="text-[9px] tracking-[0.25em] font-space font-bold uppercase px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
-                  ATELIER
-                </span>
               </div>
-              <p className="text-[11px] text-stone-500 dark:text-stone-400 font-light hidden sm:block">
-                Experiencias Digitales & Diseño Web de Alta Costura
+              <p className="text-xs text-stone-600 dark:text-stone-300 font-normal hidden sm:block">
+                Diseño Digital & Experiencias de Alta Costura
               </p>
             </div>
           </div>
 
           {/* Controls & Mode Switcher */}
           <div className="flex items-center gap-3">
-            
-            {/* Cloud Status Pill */}
-            <div 
-              title="Base de datos Firestore sincronizada en tiempo real"
-              className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 text-[11px] font-mono text-stone-600 dark:text-stone-300"
-            >
-              <span className={`w-2 h-2 rounded-full ${isFirestoreConnected ? "bg-amber-500 animate-pulse" : "bg-stone-400"}`} />
-              <Cloud className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-              <span>{isSyncingWithCloud ? "Sincronizando..." : "Firestore Cloud"}</span>
-            </div>
 
             {/* Direct WhatsApp Concierge */}
             <a
@@ -580,13 +567,6 @@ export default function App() {
             </div>
 
             <div className="max-w-3xl space-y-6 relative z-10">
-              
-              <div className="flex items-center gap-3">
-                <span className="text-[11px] font-space font-bold uppercase tracking-[0.25em] text-amber-700 dark:text-amber-400">
-                  V.A.C. Creative Atelier · Edición 2026
-                </span>
-                <span className="h-px w-10 bg-amber-600/40 dark:bg-amber-500/50" />
-              </div>
 
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-stone-950 dark:text-white tracking-tight leading-[1.05]">
                 Invitaciones Digitales <br />
@@ -1099,7 +1079,7 @@ export default function App() {
       {/* LUXURY EDITORIAL FOOTER */}
       <footer className="border-t border-stone-200/60 dark:border-stone-900 bg-white/50 dark:bg-[#0C0B0A] py-12 text-xs text-stone-500 text-center space-y-3">
         <p className="font-serif font-bold text-stone-900 dark:text-stone-200 text-sm tracking-wide">
-          V.A.C. Creative Studio · Atelier de Diseño & Experiencias Digitales
+          V.A.C. Creative Studio · Diseño & Experiencias Digitales
         </p>
         <p className="text-[11px] text-stone-400 font-light max-w-md mx-auto">
           Base de Datos Firebase Firestore activa con sincronización en tiempo real y arquitectura de alta disponibilidad.

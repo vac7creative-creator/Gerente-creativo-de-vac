@@ -85,7 +85,7 @@ export default function ServicePreviewModal({
           {/* Texts overlay */}
           <div className="relative z-10 space-y-3">
             <span className="text-[10px] bg-amber-500 text-stone-950 font-bold uppercase tracking-[0.2em] font-space px-3 py-1 rounded-full inline-block">
-              V.A.C. Atelier Edition
+              V.A.C. Creative Edition
             </span>
             <h2 className="text-3xl md:text-4xl font-serif font-bold text-white tracking-tight leading-tight drop-shadow-md">
               {service.title}
