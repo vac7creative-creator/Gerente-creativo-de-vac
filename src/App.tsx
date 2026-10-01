@@ -15,8 +15,12 @@ import {
   syncAllProjectsToFirestore, 
   testConnection,
   signOutAdmin,
-  cleanCompromisedAdminRecord
+  cleanCompromisedAdminRecord,
+  auth,
+  db
 } from "./firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 // Components
 import StatsDashboard from "./components/StatsDashboard";
@@ -110,6 +114,8 @@ export default function App() {
   const [trackResultText, setTrackResultText] = useState("");
   const [trackedProjects, setTrackedProjects] = useState<Project[] | null>(null);
 
+  const [adminDisplayName, setAdminDisplayName] = useState<string>("Administrador V.A.C.");
+
   // --- ACTIONS & PERSISTENCE EFFECTS ---
 
   // 1. Theme Configuration
@@ -124,75 +130,72 @@ export default function App() {
       document.documentElement.classList.remove("dark");
       document.body.classList.remove("dark");
     }
-
-    // Check if admin is logged in this browser session
-    const adminSession = sessionStorage.getItem("vac_admin_logged");
-    if (adminSession === "true") {
-      setIsAdminAuthenticated(true);
-    }
   }, []);
 
-  // 2. Firebase Firestore & Admin Initialization
+  // 2. Real-time Firebase Authentication State Observer
   useEffect(() => {
-    // A. Clean up old compromised credentials from Firestore if any exist
-    cleanCompromisedAdminRecord().catch(() => {});
-
-    // B. First load cached data immediately for instant speed
-    const savedProjects = localStorage.getItem(LOCAL_STORAGE_KEY);
-    let initialList: Project[] = [];
-    if (savedProjects) {
-      try {
-        initialList = JSON.parse(savedProjects);
-        setProjects(initialList);
-      } catch (err) {
-        console.error("Error reading projects from localStorage.", err);
-      }
-    }
-
-    // C. Test connection
+    // Read-only connection health check
     testConnection().then((connected) => {
       setIsFirestoreConnected(connected);
     });
 
-    // D. Subscribe to Firestore
+    // Clean up old compromised records if any
+    cleanCompromisedAdminRecord().catch(() => {});
+
+    // Listen to Firebase Auth state
+    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        try {
+          const userDocSnap = await getDoc(doc(db, "users", currentUser.uid));
+          if (userDocSnap.exists() && userDocSnap.data()?.role === "admin") {
+            setIsAdminAuthenticated(true);
+            const name = userDocSnap.data()?.name || userDocSnap.data()?.username || "Administrador V.A.C.";
+            setAdminDisplayName(name);
+            return;
+          }
+        } catch (err) {
+          console.warn("Could not verify admin role against Firestore:", err);
+        }
+      }
+      // If not authenticated or does not hold role admin:
+      setIsAdminAuthenticated(false);
+      setViewMode("client");
+      setProjects([]);
+      sessionStorage.removeItem("vac_admin_logged");
+      localStorage.removeItem("vac_admin_user");
+    });
+
+    return () => {
+      unsubscribeAuth();
+    };
+  }, []);
+
+  // 3. Admin-Only Real-time Projects Subscription (Requirement 7 & 8)
+  useEffect(() => {
+    // Client view NEVER downloads or subscribes to the projects collection
+    if (!isAdminAuthenticated || viewMode !== "admin") {
+      setProjects([]);
+      return;
+    }
+
     setIsSyncingWithCloud(true);
-    const unsubscribe = subscribeToProjects(
+    const unsubscribeProjects = subscribeToProjects(
       (firestoreProjects) => {
         setIsSyncingWithCloud(false);
         setIsFirestoreConnected(true);
-        if (firestoreProjects && firestoreProjects.length > 0) {
-          setProjects(firestoreProjects);
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(firestoreProjects));
-        } else {
-          const listToSeed = initialList.length > 0 ? initialList : seedProjects;
-          setProjects(listToSeed);
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(listToSeed));
-          syncAllProjectsToFirestore(listToSeed).catch((err) => {
-            console.warn("Could not initial-seed Firestore", err);
-          });
-        }
+        setProjects(firestoreProjects);
       },
       (error) => {
-        console.warn("Firestore subscription fallback to local storage cache:", error);
+        console.warn("Firestore subscription error:", error);
         setIsSyncingWithCloud(false);
         setIsFirestoreConnected(false);
-        if (initialList.length === 0) {
-          setProjects(seedProjects);
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(seedProjects));
-        }
       }
     );
 
     return () => {
-      unsubscribe();
+      unsubscribeProjects();
     };
-  }, []);
-
-  // Save projects locally and to Firestore
-  const saveProjectsToStorage = (updatedList: Project[]) => {
-    setProjects(updatedList);
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
-  };
+  }, [isAdminAuthenticated, viewMode]);
 
   // Toggle App Theme (Light/Dark mode)
   const toggleTheme = () => {
@@ -210,11 +213,11 @@ export default function App() {
   };
 
   // Switch to admin view with security check
-  const handleToggleAdminView = () => {
+  const handleToggleAdminView = async () => {
     if (viewMode === "admin") {
       setViewMode("client");
     } else {
-      if (isAdminAuthenticated) {
+      if (isAdminAuthenticated && auth.currentUser) {
         setViewMode("admin");
       } else {
         setLoginModalOpen(true);
@@ -222,68 +225,77 @@ export default function App() {
     }
   };
 
+  // Secure Admin Logout (Requirement 12)
   const handleAdminLogout = async () => {
     await signOutAdmin();
     sessionStorage.removeItem("vac_admin_logged");
     localStorage.removeItem("vac_admin_user");
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
     setIsAdminAuthenticated(false);
+    setProjects([]);
     setViewMode("client");
     showToast("Sesión de administrador cerrada en Firebase Auth", "info");
   };
 
-  // Helper: Create/Update project
+  // Helper: Create/Update project (Secured for Public vs Admin)
   const handleSaveProject = async (updatedProj: Project) => {
-    const index = projects.findIndex(p => p.id === updatedProj.id);
-    let newList = [...projects];
-
-    if (index >= 0) {
-      newList[index] = updatedProj;
-    } else {
-      newList = [updatedProj, ...newList];
+    // If client, force status to "Pendiente" to satisfy Firestore security rules
+    if (!isAdminAuthenticated) {
+      updatedProj.status = ProjectStatus.PENDIENTE;
     }
 
-    saveProjectsToStorage(newList);
     setFormModalOpen(false);
     setEditingProject(undefined);
 
     try {
       await saveProjectToFirestore(updatedProj);
-      showToast(index >= 0 ? "Proyecto actualizado en Firebase" : "¡Nuevo proyecto guardado en Firebase!");
+      if (isAdminAuthenticated) {
+        const index = projects.findIndex(p => p.id === updatedProj.id);
+        const newList = index >= 0
+          ? projects.map(p => p.id === updatedProj.id ? updatedProj : p)
+          : [updatedProj, ...projects];
+        setProjects(newList);
+        showToast(index >= 0 ? "Proyecto actualizado en Firebase" : "¡Nuevo proyecto guardado en Firebase!");
+      } else {
+        showToast("¡Solicitud enviada con éxito! Un asesor creativo de V.A.C. te contactará en breve.");
+      }
     } catch (err) {
-      console.warn("Error saving to Firestore", err);
-      showToast("Guardado localmente (Offline)", "info");
+      console.warn("Error saving project to Firestore:", err);
+      showToast("Error al registrar la solicitud. Verifica tu conexión e intenta de nuevo.", "info");
     }
   };
 
-  // Delete project
+  // Delete project (Admin Only)
   const handleDeleteProject = async (projId: string) => {
+    if (!isAdminAuthenticated) return;
     const filtered = projects.filter(p => p.id !== projId);
-    saveProjectsToStorage(filtered);
+    setProjects(filtered);
 
     try {
       await deleteProjectFromFirestore(projId);
       showToast("Proyecto eliminado de Firebase", "info");
     } catch (err) {
       console.warn("Error deleting from Firestore", err);
-      showToast("Eliminado localmente", "info");
+      showToast("Error al eliminar en Firebase", "info");
     }
   };
 
-  // Change individual project status directly inside card dropdown click
+  // Change individual project status directly inside card dropdown click (Admin Only)
   const handleStatusChange = async (id: string, newStatus: ProjectStatus) => {
+    if (!isAdminAuthenticated) return;
     const target = projects.find(p => p.id === id);
     if (!target) return;
 
     const updated = { ...target, status: newStatus, updatedAt: new Date().toISOString() };
     const newList = projects.map(p => (p.id === id ? updated : p));
-    saveProjectsToStorage(newList);
+    setProjects(newList);
 
     try {
       await saveProjectToFirestore(updated);
       showToast(`Estado cambiado a: ${newStatus}`);
     } catch (err) {
       console.warn("Error updating status in Firestore", err);
-      showToast(`Estado actualizado localmente a: ${newStatus}`, "info");
+      showToast(`Error al actualizar estado en Firebase`, "info");
     }
   };
 

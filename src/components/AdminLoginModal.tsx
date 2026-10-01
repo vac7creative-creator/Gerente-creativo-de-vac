@@ -92,13 +92,13 @@ export default function AdminLoginModal({
             {/* Username or Email */}
             <div className="space-y-1.5">
               <label className="text-xs font-space font-medium text-stone-700 dark:text-stone-300">
-                Usuario o Correo Administrador
+                Usuario o Correo
               </label>
               <input
                 type="text"
                 value={usernameOrEmail}
                 onChange={(e) => setUsernameOrEmail(e.target.value)}
-                placeholder="Ej. Vlad01 o correo electrónico"
+                placeholder="Usuario o correo"
                 autoComplete="username"
                 className="w-full px-4 py-2.5 text-sm bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
               />

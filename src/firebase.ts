@@ -7,7 +7,6 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { 
   getAuth, 
   signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
   User 
@@ -80,16 +79,16 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-// 3. Test Connection on boot
+// 3. Test Connection on boot (Read-Only)
 export async function testConnection(): Promise<boolean> {
   try {
     await getDocFromServer(doc(db, "test", "connection"));
     return true;
   } catch (error) {
     if (error instanceof Error && error.message.includes("the client is offline")) {
-      console.warn("Firestore client is offline, falling back to local cache.");
+      console.warn("Firestore client is offline.");
     } else {
-      console.info("Firestore connection verified or test doc initialized.");
+      console.info("Firestore connection verified.");
     }
     return false;
   }
@@ -111,22 +110,20 @@ function sanitizeForFirestore(obj: unknown): unknown {
   return clean;
 }
 
-// 5. Real-Time Subscription to Projects Collection
+// 5. Real-time Subscription to Projects (ADMIN ONLY)
 export function subscribeToProjects(
   onUpdate: (projects: Project[]) => void,
   onError?: (err: Error) => void
 ): () => void {
-  const colRef = collection(db, "projects");
-  
+  const q = collection(db, "projects");
   return onSnapshot(
-    colRef,
+    q,
     (snapshot) => {
       const items: Project[] = [];
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data() as Project;
+      snapshot.forEach((d) => {
         items.push({
-          ...data,
-          id: docSnap.id
+          ...(d.data() as Project),
+          id: d.id
         });
       });
       // Sort newest updated first
@@ -144,7 +141,7 @@ export function subscribeToProjects(
   );
 }
 
-// 6. Save or Update Project
+// 6. Save or Update Project (Admin can update, Public can create with initial status "Pendiente")
 export async function saveProjectToFirestore(project: Project): Promise<void> {
   const docPath = `projects/${project.id}`;
   try {
@@ -155,7 +152,7 @@ export async function saveProjectToFirestore(project: Project): Promise<void> {
   }
 }
 
-// 7. Delete Project
+// 7. Delete Project (Admin Only)
 export async function deleteProjectFromFirestore(projectId: string): Promise<void> {
   const docPath = `projects/${projectId}`;
   try {
@@ -165,7 +162,7 @@ export async function deleteProjectFromFirestore(projectId: string): Promise<voi
   }
 }
 
-// 8. Batch Sync / Initial Seed Migration
+// 8. Batch Sync / Migration (Admin Only)
 export async function syncAllProjectsToFirestore(projects: Project[]): Promise<void> {
   try {
     const batch = writeBatch(db);
@@ -180,7 +177,7 @@ export async function syncAllProjectsToFirestore(projects: Project[]): Promise<v
   }
 }
 
-// 9. Fetch all once (useful for checking if DB is completely empty)
+// 9. Fetch all once (Admin Only)
 export async function fetchProjectsOnce(): Promise<Project[]> {
   try {
     const snapshot = await getDocs(collection(db, "projects"));
@@ -195,7 +192,7 @@ export async function fetchProjectsOnce(): Promise<Project[]> {
   }
 }
 
-// 10. Clean-up of old compromised admin document
+// 10. Clean-up of old compromised admin document (one-time safety)
 export async function cleanCompromisedAdminRecord(): Promise<void> {
   try {
     await deleteDoc(doc(db, "admins", "Vlad01"));
@@ -213,6 +210,10 @@ export function resolveAdminEmail(usernameOrEmail: string): string {
   return `${clean}@vaccreative.studio`;
 }
 
+/**
+ * Validates admin login exclusively using signInWithEmailAndPassword.
+ * Strictly forbids automatic user creation or auto-promotion to role: "admin".
+ */
 export async function signInAdminWithFirebaseAuth(
   usernameOrEmail: string,
   passInput: string
@@ -220,84 +221,78 @@ export async function signInAdminWithFirebaseAuth(
   const email = resolveAdminEmail(usernameOrEmail);
 
   try {
-    let userCredential;
-    try {
-      userCredential = await signInWithEmailAndPassword(auth, email, passInput);
-    } catch (authErr: any) {
-      // First-time migration: bootstrap administrator identity in Firebase Authentication
-      if (
-        authErr.code === "auth/user-not-found" ||
-        authErr.code === "auth/invalid-credential" ||
-        authErr.code === "auth/invalid-login-credentials"
-      ) {
-        try {
-          userCredential = await createUserWithEmailAndPassword(auth, email, passInput);
-          // Set RBAC authorization in Firestore users/{uid} (never storing passwords)
-          await setDoc(doc(db, "users", userCredential.user.uid), {
-            uid: userCredential.user.uid,
-            name: "Administrador V.A.C.",
-            role: "admin",
-            email: email,
-            username: usernameOrEmail.trim(),
-            createdAt: new Date().toISOString()
-          }, { merge: true });
-        } catch {
-          // If creation fails, re-throw the original error
-          throw authErr;
-        }
-      } else {
-        throw authErr;
-      }
-    }
-
+    // 1. Authenticate against Firebase Authentication (NO user creation)
+    const userCredential = await signInWithEmailAndPassword(auth, email, passInput);
     const user = userCredential.user;
+
     if (!user) {
-      return { success: false, error: "No se pudo obtener la identidad de autenticación." };
+      return { 
+        success: false, 
+        error: "No se pudo obtener la identidad de autenticación." 
+      };
     }
 
-    // Consult authorization role from Firestore users/{uid}
+    // 2. Consult Firestore users/{uid} for role authorization (NO auto-creation of role admin)
     const userDocRef = doc(db, "users", user.uid);
-    let userSnap = await getDoc(userDocRef);
+    const userSnap = await getDoc(userDocRef);
 
     if (!userSnap.exists()) {
-      await setDoc(userDocRef, {
-        uid: user.uid,
-        name: "Administrador V.A.C.",
-        role: "admin",
-        email: email,
-        username: usernameOrEmail.trim(),
-        createdAt: new Date().toISOString()
-      }, { merge: true });
-      userSnap = await getDoc(userDocRef);
+      // User is in Firebase Auth but has no entry in users collection
+      await signOut(auth);
+      return { 
+        success: false, 
+        error: "Cuenta autenticada, pero no autorizada como administrador." 
+      };
     }
 
     const userData = userSnap.data();
     if (userData?.role === "admin") {
-      // Delete old compromised document if still present in Firestore
+      // Validated administrator
       cleanCompromisedAdminRecord().catch(() => {});
       return { success: true };
     } else {
+      // Account exists but role is not admin
       await signOut(auth);
-      return { success: false, error: "Acceso denegado: La cuenta no cuenta con rol de administrador." };
+      return { 
+        success: false, 
+        error: "Cuenta autenticada, pero no autorizada como administrador." 
+      };
     }
   } catch (err: any) {
+    console.error("Admin Authentication Failure:", err);
     if (
-      err.code === "auth/invalid-credential" ||
+      err.code === "auth/user-not-found" || 
+      err.code === "auth/invalid-credential" || 
       err.code === "auth/wrong-password" ||
       err.code === "auth/invalid-login-credentials"
     ) {
-      return { success: false, error: "Contraseña incorrecta o credenciales no válidas en Firebase Authentication." };
-    }
-    if (err.code === "auth/weak-password") {
-      return { success: false, error: "La contraseña debe tener al menos 6 caracteres." };
+      return { 
+        success: false, 
+        error: "Esta cuenta administrativa no está configurada en Firebase Authentication o las credenciales son incorrectas." 
+      };
     }
     if (err.code === "auth/too-many-requests") {
-      return { success: false, error: "Demasiados intentos fallidos. Intenta más tarde." };
+      return { 
+        success: false, 
+        error: "Demasiados intentos fallidos. Intenta más tarde." 
+      };
     }
-    return { success: false, error: err.message || "Error al autenticar con Firebase Authentication." };
+    if (err.code === "auth/network-request-failed") {
+      return { 
+        success: false, 
+        error: "Error de conexión. Verifica tu conexión a internet e intenta nuevamente." 
+      };
+    }
+    return { 
+      success: false, 
+      error: "Credenciales incorrectas o acceso no autorizado." 
+    };
   }
 }
 
+/**
+ * Signs out admin and terminates any active Firebase session.
+ */
 export async function signOutAdmin(): Promise<void> {
   try {
     await signOut(auth);
@@ -306,4 +301,26 @@ export async function signOutAdmin(): Promise<void> {
   }
 }
 
-
+/**
+ * Checks if the currently signed-in user has verified admin role in Firestore.
+ */
+export async function checkCurrentUserIsAdmin(): Promise<{ isAdmin: boolean; user: User | null; roleName?: string }> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    return { isAdmin: false, user: null };
+  }
+  try {
+    const userDocRef = doc(db, "users", currentUser.uid);
+    const snap = await getDoc(userDocRef);
+    if (snap.exists() && snap.data()?.role === "admin") {
+      return { 
+        isAdmin: true, 
+        user: currentUser, 
+        roleName: snap.data()?.name || "Administrador V.A.C." 
+      };
+    }
+  } catch (error) {
+    console.warn("Could not verify admin role:", error);
+  }
+  return { isAdmin: false, user: currentUser };
+}

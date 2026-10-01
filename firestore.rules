@@ -15,6 +15,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Role check: verifies the user document in /users exists and has role == 'admin'
     function isAdmin() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
@@ -29,31 +30,31 @@ service cloud.firestore {
         && data.status is string && data.status.size() <= 50;
     }
 
-    // Projects collection
+    // Projects collection:
+    // ADMIN: full get, list, create, update, delete
+    // PUBLIC: ONLY create a new project with initial status "Pendiente"
     match /projects/{projectId} {
-      allow get: if isValidId(projectId);
-      allow list: if true;
-      allow create: if isValidId(projectId) && isValidProject(incoming());
-      allow update: if isValidId(projectId) && isValidProject(incoming());
-      allow delete: if isValidId(projectId);
+      allow get, list, update, delete: if isAdmin();
+      allow create: if isValidId(projectId)
+                    && isValidProject(incoming())
+                    && (isAdmin() || incoming().status == "Pendiente");
     }
 
-    // Users collection for RBAC authorization (no passwords stored)
+    // Users collection for authorization & RBAC:
+    // READ: Only the signed-in user themselves or an admin
+    // WRITE (create, update, delete): ONLY existing verified admin (no self-promotion)
     match /users/{userId} {
-      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow list: if isAdmin();
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow delete: if isAdmin();
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create, update, delete: if isAdmin();
     }
 
-    // Connection health check path
+    // Health check test doc: READ only, NO public write
     match /test/{docId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if false;
     }
 
-    // Default deny all other paths
+    // Default deny everything else
     match /{document=**} {
       allow read, write: if false;
     }

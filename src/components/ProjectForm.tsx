@@ -306,7 +306,9 @@ export default function ProjectForm({
     setFormError("");
 
     const compiledProject: Project = {
-      id: project?.id || "proj-" + Math.floor(100000 + Math.random() * 900000),
+      id: project?.id || (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" 
+            ? `proj_${crypto.randomUUID()}` 
+            : `proj_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`),
       clientName: clientName.trim(),
       clientPhone: clientPhone.trim() || "+52 55 1234 5678",
       clientEmail: clientEmail.trim() || "vacstudio@gmail.com",
