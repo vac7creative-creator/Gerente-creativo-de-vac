@@ -27,206 +27,11 @@ import CurrencySelector, {
   formatCurrency, 
   CURRENCY_OPTIONS 
 } from "./CurrencySelector";
+import { SERVICES_CATALOG_DATA, ServiceCatalogItem, PackageItem } from "../data/servicesCatalog";
 
 interface InstantQuoteCalculatorProps {
-  onSelectServiceAndStartOrder: (type: ProjectType, prefilledNotes?: string) => void;
+  onSelectServiceAndStartOrder: (type: ProjectType, prefilledNotes?: string, packageId?: string) => void;
 }
-
-export interface AddonItem {
-  id: string;
-  label: string;
-  priceInPEN: number;
-  description: string;
-  icon: "music" | "camera" | "qr" | "zap" | "msg";
-}
-
-export interface ServiceConfig {
-  type: ProjectType;
-  title: string;
-  basePriceInPEN: number;
-  delivery: string;
-  description: string;
-  benefits: string[];
-  addons: AddonItem[];
-}
-
-// Master service configurations with tailored pricing, delivery, benefits, and add-ons
-export const SERVICE_CONFIGURATIONS: ServiceConfig[] = [
-  {
-    type: ProjectType.BODA,
-    title: "Invitación de Bodas Luxury",
-    basePriceInPEN: 240,
-    delivery: "3 a 5 días",
-    description: "Diseño elegante para parejas con confirmación RSVP y enlace web propio.",
-    benefits: [
-      "Enlace web propio personalizado",
-      "Compatibilidad total con móviles iOS y Android",
-      "Confirmación de invitados por WhatsApp con conteo de pases",
-      "Ubicación GPS interactiva para ceremonia y recepción"
-    ],
-    addons: [
-      { id: "musica", label: "Música de Fondo Personalizada", priceInPEN: 30, description: "Canción romántica que se reproduce al abrir la invitación.", icon: "music" },
-      { id: "galeria_fotos", label: "Galería de Fotografías HD", priceInPEN: 40, description: "Carrusel interactivo con imágenes de la sesión de compromiso.", icon: "camera" },
-      { id: "rsvp_pases", label: "RSVP por WhatsApp con Control de Pases", priceInPEN: 35, description: "Sistema estructurado para control de adultos y niños.", icon: "msg" },
-      { id: "qr_imprimible", label: "Código QR Imprimible en Alta Resolución", priceInPEN: 25, description: "Vector optimizado para tarjetas de invitación físicas.", icon: "qr" },
-      { id: "mesa_regalos", label: "Mesa de Regalos Digital", priceInPEN: 30, description: "Enlaces directos a tiendas, cuentas bancarias o lluvia de sobres.", icon: "zap" },
-      { id: "dress_code", label: "Sección de Código de Vestimenta", priceInPEN: 25, description: "Indicaciones de etiqueta, paleta de colores y sugerencias.", icon: "zap" },
-      { id: "historia_amor", label: "Línea de Tiempo / Historia de la Pareja", priceInPEN: 40, description: "Sección especial relatando su historia de amor.", icon: "music" },
-      { id: "entrega_urgente", label: "Entrega Prioritaria (24 Horas)", priceInPEN: 70, description: "Desarrollo en canal preferencial con prioridad absoluta.", icon: "zap" }
-    ]
-  },
-  {
-    type: ProjectType.XV_ANOS,
-    title: "Invitación de XV Años Princesa",
-    basePriceInPEN: 190,
-    delivery: "3 a 4 días",
-    description: "Animaciones mágicas, lluvia de destellos, cronómetro y dress code.",
-    benefits: [
-      "Enlace web propio interactivo",
-      "Cuenta regresiva animada en tiempo real",
-      "Confirmación de asistencia por WhatsApp",
-      "Ubicación de salón y ceremonia"
-    ],
-    addons: [
-      { id: "musica", label: "Música de Entrada Personalizada", priceInPEN: 30, description: "Tema musical favorito al ingresar a la invitación.", icon: "music" },
-      { id: "galeria_fotos", label: "Galería de Fotos de Quinceañera", priceInPEN: 40, description: "Álbum fotográfico de sesión especial.", icon: "camera" },
-      { id: "rsvp_pases", label: "RSVP por WhatsApp con Pases", priceInPEN: 35, description: "Confirmación exacta de invitados.", icon: "msg" },
-      { id: "qr_imprimible", label: "Código QR para Recuerdos", priceInPEN: 25, description: "Diseño QR para imprimir en tarjetas o detalles.", icon: "qr" },
-      { id: "dress_code", label: "Sección de Dress Code", priceInPEN: 25, description: "Indicaciones de vestimenta y colores sugeridos.", icon: "zap" },
-      { id: "mesa_regalos", label: "Mesa de Regalos / Lluvia de Sobres", priceInPEN: 30, description: "Información de obsequios y transferencias.", icon: "zap" },
-      { id: "animaciones_premium", label: "Animaciones Estelares Avanzadas", priceInPEN: 45, description: "Efectos visuales de partículas, destellos y confetti.", icon: "zap" },
-      { id: "entrega_urgente", label: "Entrega Prioritaria (24 Horas)", priceInPEN: 70, description: "Atención prioritaria y entrega rápida.", icon: "zap" }
-    ]
-  },
-  {
-    type: ProjectType.CUMPLEANOS,
-    title: "Invitación de Cumpleaños Express",
-    basePriceInPEN: 130,
-    delivery: "24 a 48 horas",
-    description: "Formato ágil de alta energía con botón de ubicación y confirmación.",
-    benefits: [
-      "Diseño optimizado para compartir en WhatsApp",
-      "Botón directo de ubicación GPS",
-      "Confirmación rápida de invitados",
-      "Compatibilidad total con smartphones"
-    ],
-    addons: [
-      { id: "musica", label: "Música de Fondo Festiva", priceInPEN: 30, description: "Canción alegre que ameniza la invitación.", icon: "music" },
-      { id: "galeria_fotos", label: "Mini Galería de Momentos", priceInPEN: 35, description: "Fotos destacadas del festejado.", icon: "camera" },
-      { id: "ubicacion_gps", label: "Mapa de Ubicación Interactiva", priceInPEN: 20, description: "Acceso directo a Waze y Google Maps.", icon: "qr" },
-      { id: "rsvp_pases", label: "Confirmación por WhatsApp", priceInPEN: 30, description: "Botón automatizado para recibir asistencias.", icon: "msg" },
-      { id: "animaciones_premium", label: "Efectos Visuales Festivos", priceInPEN: 35, description: "Globos, animación de texto y colores vibrantes.", icon: "zap" },
-      { id: "entrega_urgente", label: "Entrega Prioritaria (24 Horas)", priceInPEN: 70, description: "Prioridad máxima en cola de diseño.", icon: "zap" }
-    ]
-  },
-  {
-    type: ProjectType.CARTA_DIGITAL,
-    title: "Carta & Menú Digital Gourmet",
-    basePriceInPEN: 280,
-    delivery: "4 a 6 días",
-    description: "Catálogo de platillos con categorías, fotos y envío de comanda a WhatsApp.",
-    benefits: [
-      "Interfaz responsive sin descargas de apps",
-      "Categorización fluida (Entradas, Platos, Bebidas)",
-      "Envío directo de comandas a WhatsApp",
-      "Actualización instantánea de precios o platos"
-    ],
-    addons: [
-      { id: "qr_imprimible", label: "Diseño de Código QR para Mesas", priceInPEN: 25, description: "Arte vectorial listo para imprimir en acrílicos o portamenús.", icon: "qr" },
-      { id: "productos_extra", label: "Bloque de Productos Adicionales (+10 ítems)", priceInPEN: 40, description: "Incorporación de una sección ampliada de especialidades.", icon: "zap" },
-      { id: "categorias_extra", label: "Categorías Especiales o Vinos", priceInPEN: 35, description: "Sección dedicada a coctelería o cava.", icon: "zap" },
-      { id: "pedidos_whatsapp", label: "Botón de Comandas y Pedidos Directos", priceInPEN: 45, description: "Generador automático de pedido estructurado para cocina.", icon: "msg" },
-      { id: "galeria_fotos", label: "Galería Fotográfica de Platillos", priceInPEN: 40, description: "Imágenes en alta definición de las especialidades de la casa.", icon: "camera" },
-      { id: "entrega_urgente", label: "Entrega Prioritaria (24 Horas)", priceInPEN: 70, description: "Prioridad en desarrollo y maquetación digital.", icon: "zap" }
-    ]
-  },
-  {
-    type: ProjectType.LANDING_PAGE,
-    title: "Landing Page Comercial",
-    basePriceInPEN: 360,
-    delivery: "3 a 5 días",
-    description: "Página web de alta conversión para venta o captación de prospectos.",
-    benefits: [
-      "Diseño responsive de alta conversión",
-      "Formulario de contacto y llamadas a la acción",
-      "Optimización SEO técnico básico",
-      "Dominio temporal propio para pruebas"
-    ],
-    addons: [
-      { id: "secciones_extra", label: "Secciones Adicionales de Contenido", priceInPEN: 60, description: "Bloques adicionales para testimonios, equipo o servicios.", icon: "zap" },
-      { id: "formulario_avanzado", label: "Formulario de Leads Avanzado", priceInPEN: 50, description: "Campos personalizados con validación y alertas.", icon: "zap" },
-      { id: "whatsapp_lead", label: "Botón Flotante de WhatsApp Business", priceInPEN: 35, description: "Acceso permanente de chat para clientes interesados.", icon: "msg" },
-      { id: "mapa_interactivo", label: "Mapa y Sucursales", priceInPEN: 30, description: "Integración geolocalizada para tiendas o oficinas.", icon: "qr" },
-      { id: "animaciones_premium", label: "Efectos de Animación Scroll", priceInPEN: 45, description: "Transiciones fluidas al deslizar la página.", icon: "zap" },
-      { id: "faq_section", label: "Sección de Preguntas Frecuentes (FAQ)", priceInPEN: 30, description: "Acordeón interactivo para resolver dudas comunes.", icon: "zap" },
-      { id: "entrega_urgente", label: "Entrega Prioritaria (24 Horas)", priceInPEN: 70, description: "Desarrollo acelerado en jornada continua.", icon: "zap" }
-    ]
-  },
-  {
-    type: ProjectType.SPOT,
-    title: "Spot Publicitario / Locución",
-    basePriceInPEN: 220,
-    delivery: "3 a 5 días",
-    description: "Audio comercial con locución profesional y masterización de sonido.",
-    benefits: [
-      "Locución profesional en estudio con voz comercial",
-      "Masterización de audio profesional",
-      "Formato de entrega en alta calidad WAV y MP3",
-      "Derechos de uso comercial incluidos"
-    ],
-    addons: [
-      { id: "guion_spot", label: "Desarrollo o Mejora de Guion Publicitario", priceInPEN: 50, description: "Redacción persuasiva adaptada a tu público objetivo.", icon: "zap" },
-      { id: "locucion_adicional", label: "Locución Adicional / Segunda Voz", priceInPEN: 60, description: "Incorporación de voz complementaria (diálogo o contraste).", icon: "msg" },
-      { id: "musicalizacion_spot", label: "Musicalización Comercial con Licencia", priceInPEN: 50, description: "Banda sonora instrumental idónea para el ritmo del spot.", icon: "music" },
-      { id: "diseno_sonoro", label: "Diseño Sonoro y Efectos Especiales (SFX)", priceInPEN: 45, description: "Ambientación, transiciones y efectos de impacto.", icon: "zap" },
-      { id: "version_vertical", label: "Versión Vertical 9:16 para Reels y TikTok", priceInPEN: 50, description: "Adaptación audiovisual optimizada para redes sociales.", icon: "camera" },
-      { id: "subtitulos_spot", label: "Subtítulos Dinámicos Incrustados", priceInPEN: 40, description: "Texto animado ideal para reproducción sin audio.", icon: "qr" },
-      { id: "entrega_urgente", label: "Entrega Prioritaria (24 Horas)", priceInPEN: 70, description: "Producción y entrega en jornada express.", icon: "zap" }
-    ]
-  },
-  {
-    type: ProjectType.FOTO_VIDEO,
-    title: "Producción Audiovisual / Video",
-    basePriceInPEN: 320,
-    delivery: "5 a 7 días",
-    description: "Edición cinemática, corrección de color y formato vertical para redes.",
-    benefits: [
-      "Edición cinemática profesional",
-      "Corrección de color base adaptada al tono",
-      "Exportación optimizada 4K y 1080p",
-      "Sincronización perfecta de audio y ritmo"
-    ],
-    addons: [
-      { id: "reel_adicional", label: "Reel Vertical Adicional para Redes", priceInPEN: 60, description: "Corte optimizado para Instagram Reels o TikTok.", icon: "camera" },
-      { id: "subtitulos_avanzados", label: "Subtítulos Dinámicos Estilizados", priceInPEN: 50, description: "Subtitulado profesional con tipografía de marca.", icon: "qr" },
-      { id: "color_grading", label: "Corrección de Color Cinemática Avanzada", priceInPEN: 60, description: "Look visual de cine con grading profesional.", icon: "zap" },
-      { id: "motion_graphics", label: "Motion Graphics y Títulos Animados", priceInPEN: 65, description: "Rótulos dinámicos y gráficos en movimiento.", icon: "zap" },
-      { id: "intro_outro", label: "Intro y Outro Personalizados", priceInPEN: 45, description: "Cortes de apertura y cierre con identidad propia.", icon: "music" },
-      { id: "entrega_urgente", label: "Entrega Prioritaria (24 Horas)", priceInPEN: 70, description: "Prioridad absoluta en estación de edición.", icon: "zap" }
-    ]
-  },
-  {
-    type: ProjectType.DISENO_GRAFICO,
-    title: "Identidad Gráfica & Branding",
-    basePriceInPEN: 260,
-    delivery: "2 a 4 días",
-    description: "Diseño de logotipos vectoriales originales y paletas cromáticas.",
-    benefits: [
-      "Propuestas vectoriales originales y exclusivas",
-      "Archivos finales en alta resolución",
-      "Derechos de uso comercial plenos",
-      "Asesoría en tipografías y colores"
-    ],
-    addons: [
-      { id: "logotipo_variaciones", label: "Variaciones de Logotipo (Vertical / Sello)", priceInPEN: 60, description: "Versiones alternativas adaptadas a diferentes soportes.", icon: "zap" },
-      { id: "archivos_editables", label: "Entrega de Archivos Fuente Editables (AI, EPS, SVG)", priceInPEN: 70, description: "Paquete completo con formatos vectoriales editables.", icon: "qr" },
-      { id: "mockups_3d", label: "Mockups 3D de Presentación de Marca", priceInPEN: 50, description: "Visualización realista en papelería y productos.", icon: "camera" },
-      { id: "paleta_avanzada", label: "Guía de Paleta Cromática y Códigos Pantone", priceInPEN: 35, description: "Especificaciones exactas para impresión y digital.", icon: "zap" },
-      { id: "manual_marca", label: "Manual Básico de Identidad de Marca (PDF)", priceInPEN: 80, description: "Normas de uso, proporciones y aplicaciones correctas.", icon: "msg" },
-      { id: "entrega_urgente", label: "Entrega Prioritaria (24 Horas)", priceInPEN: 70, description: "Desarrollo exprés en jornada preferencial.", icon: "zap" }
-    ]
-  }
-];
 
 const STORAGE_CURRENCY_KEY = "vac_cotizador_currency";
 
@@ -234,9 +39,14 @@ export default function InstantQuoteCalculator({
   onSelectServiceAndStartOrder
 }: InstantQuoteCalculatorProps) {
   const [selectedType, setSelectedType] = useState<ProjectType>(ProjectType.BODA);
+  const [selectedPackageId, setSelectedPackageId] = useState<string>("basico");
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [currency, setCurrency] = useState<ActiveCurrency>("PEN");
   const [detectionOrigin, setDetectionOrigin] = useState<string>("");
+
+  const currentCatalogItem: ServiceCatalogItem = SERVICES_CATALOG_DATA.find((s) => s.type === selectedType) || SERVICES_CATALOG_DATA[0];
+  const packages: PackageItem[] = currentCatalogItem.packages || [];
+  const currentPackage = packages.find((p) => p.id === selectedPackageId) || packages[0];
 
   // Detect region on mount or load saved preference
   useEffect(() => {
@@ -263,11 +73,12 @@ export default function InstantQuoteCalculator({
     }
   }, []);
 
-  const currentService = SERVICE_CONFIGURATIONS.find((s) => s.type === selectedType) || SERVICE_CONFIGURATIONS[0];
-
-  // Automatically clear selected addons that do not belong to the newly selected service
+  // When selectedType changes, reset package to first available and filter addons
   useEffect(() => {
-    const validAddonIds = currentService.addons.map((a) => a.id);
+    if (currentCatalogItem.packages.length > 0) {
+      setSelectedPackageId(currentCatalogItem.packages[0].id);
+    }
+    const validAddonIds = currentCatalogItem.addons.map((a) => a.id);
     setSelectedAddons((prev) => prev.filter((id) => validAddonIds.includes(id)));
   }, [selectedType]);
 
@@ -277,10 +88,11 @@ export default function InstantQuoteCalculator({
     setDetectionOrigin("");
   };
 
-  const currentBasePrice = convertPrice(currentService.basePriceInPEN, currency);
+  const basePricePEN = currentPackage ? currentPackage.priceInPEN : currentCatalogItem.packages[0]?.priceInPEN || 240;
+  const currentBasePrice = convertPrice(basePricePEN, currency);
 
   const addonsTotalInCurrency = selectedAddons.reduce((sum, id) => {
-    const addon = currentService.addons.find((a) => a.id === id);
+    const addon = currentCatalogItem.addons.find((a) => a.id === id);
     return sum + (addon ? convertPrice(addon.priceInPEN, currency) : 0);
   }, 0);
 
@@ -288,6 +100,7 @@ export default function InstantQuoteCalculator({
   const currencyMeta = CURRENCY_OPTIONS[currency];
 
   const toggleAddon = (id: string) => {
+    if (currentPackage?.includedFeatureIds.includes(id)) return; // Included in package
     if (selectedAddons.includes(id)) {
       setSelectedAddons(selectedAddons.filter((item) => item !== id));
     } else {
@@ -297,25 +110,25 @@ export default function InstantQuoteCalculator({
 
   const handleStartOrder = () => {
     const addonNames = selectedAddons
-      .map((id) => currentService.addons.find((a) => a.id === id)?.label)
+      .map((id) => currentCatalogItem.addons.find((a) => a.id === id)?.label)
       .filter(Boolean)
       .join(", ");
 
     const formattedAmount = formatCurrency(displayedTotalPrice, currency);
-    const notes = `Cotización en V.A.C. Creative: ${currentService.title}. Inversión estimada: ${formattedAmount}. Extras incluidos: ${addonNames || "Ninguno"}.`;
-    onSelectServiceAndStartOrder(selectedType, notes);
+    const notes = `Cotización en V.A.C. Creative: ${currentCatalogItem.title} (${currentPackage?.name}). Inversión estimada: ${formattedAmount}. Extras incluidos: ${addonNames || "Ninguno"}.`;
+    onSelectServiceAndStartOrder(selectedType, notes, currentPackage?.id);
   };
 
   const handleContactWhatsApp = () => {
     const addonNames = selectedAddons
-      .map((id) => currentService.addons.find((a) => a.id === id)?.label)
+      .map((id) => currentCatalogItem.addons.find((a) => a.id === id)?.label)
       .filter(Boolean)
       .join(", ");
 
     const formattedAmount = formatCurrency(displayedTotalPrice, currency);
 
     const message = encodeURIComponent(
-      `¡Hola V.A.C. Creative! 👋 Deseo cotizar el servicio de *${currentService.title}* con un estimado de *${formattedAmount}*.\n\n*Extras elegidos:* ${addonNames || "Paquete base"}.\n*Tiempo estimado de entrega:* ${currentService.delivery}.\n*Moneda elegida:* ${currencyMeta.name} (${currencyMeta.symbol} ${currency}).\n\n¿Podrían asesorarme para iniciar mi pedido?`
+      `¡Hola V.A.C. Creative! 👋 Deseo cotizar el servicio de *${currentCatalogItem.title}* (${currentPackage?.name}) con un estimado de *${formattedAmount}*.\n\n*Extras elegidos:* ${addonNames || "Ninguno"}.\n*Tiempo estimado de entrega:* ${currentPackage?.delivery || currentCatalogItem.deliveryTime}.\n*Moneda elegida:* ${currencyMeta.name} (${currencyMeta.symbol} ${currency}).\n\n¿Podrían asesorarme para iniciar mi pedido?`
     );
     window.open(`https://wa.me/525512345678?text=${message}`, "_blank", "noopener,noreferrer");
   };
@@ -355,7 +168,7 @@ export default function InstantQuoteCalculator({
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Left Side: Service Picker & Addons (7 cols) */}
+        {/* Left Side: Service Picker & Packages & Addons (7 cols) */}
         <div className="lg:col-span-7 space-y-8">
           
           {/* 1. SELECCIÓN DEL SERVICIO */}
@@ -370,9 +183,10 @@ export default function InstantQuoteCalculator({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {SERVICE_CONFIGURATIONS.map((service) => {
+              {SERVICES_CATALOG_DATA.map((service) => {
                 const isSelected = service.type === selectedType;
-                const convertedServicePrice = convertPrice(service.basePriceInPEN, currency);
+                const startingPkgPrice = service.packages[0]?.priceInPEN || 240;
+                const convertedPrice = convertPrice(startingPkgPrice, currency);
 
                 return (
                   <button
@@ -404,10 +218,10 @@ export default function InstantQuoteCalculator({
                     <div className="pt-2 flex items-center justify-between text-xs font-mono">
                       <span className="text-stone-500 dark:text-stone-400 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {service.delivery}
+                        {service.deliveryTime}
                       </span>
                       <span className="font-bold text-stone-900 dark:text-stone-100">
-                        {formatCurrency(convertedServicePrice, currency)}
+                        Desde {formatCurrency(convertedPrice, currency)}
                       </span>
                     </div>
                   </button>
@@ -416,11 +230,47 @@ export default function InstantQuoteCalculator({
             </div>
           </div>
 
+          {/* 1.5. SELECCIÓN DE PAQUETE */}
+          {packages.length > 0 && (
+            <div className="space-y-3">
+              <label className="text-xs font-bold font-space uppercase tracking-wider text-amber-700 dark:text-amber-400 block">
+                2. Elige el Nivel de Paquete ({currentCatalogItem.title})
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {packages.map((pkg) => {
+                  const isSelected = pkg.id === selectedPackageId;
+                  const pkgPriceConverted = convertPrice(pkg.priceInPEN, currency);
+                  return (
+                    <button
+                      key={pkg.id}
+                      type="button"
+                      onClick={() => setSelectedPackageId(pkg.id)}
+                      className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer space-y-1 ${
+                        isSelected
+                          ? "border-amber-500 bg-amber-500/10 shadow-sm font-bold"
+                          : "border-stone-200 dark:border-stone-800 bg-stone-50/40 dark:bg-stone-900/40 hover:border-stone-300"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-space uppercase tracking-wider">{pkg.name}</span>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-amber-600" />}
+                      </div>
+                      <span className="text-sm font-mono font-bold block text-stone-900 dark:text-stone-100">
+                        {formatCurrency(pkgPriceConverted, currency)}
+                      </span>
+                      <p className="text-[11px] text-stone-500 font-normal">{pkg.delivery}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* 2. EXTRAS ESPECÍFICOS DEL SERVICIO */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold font-space uppercase tracking-wider text-amber-700 dark:text-amber-400 block">
-                2. Personaliza con Extras para {currentService.title}
+                3. Personaliza con Extras Opcionales
               </label>
               <span className="text-xs text-stone-500 dark:text-stone-400">
                 Opcional
@@ -428,29 +278,32 @@ export default function InstantQuoteCalculator({
             </div>
 
             <div className="space-y-2.5">
-              {currentService.addons.map((addon) => {
-                const isChecked = selectedAddons.includes(addon.id);
+              {currentCatalogItem.addons.map((addon) => {
+                const isIncluded = currentPackage?.includedFeatureIds.includes(addon.id);
+                const isChecked = isIncluded || selectedAddons.includes(addon.id);
                 const addonPriceFormatted = formatCurrency(convertPrice(addon.priceInPEN, currency), currency);
 
                 return (
                   <div
                     key={addon.id}
                     onClick={() => toggleAddon(addon.id)}
-                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-start justify-between gap-3 ${
-                      isChecked
-                        ? "border-amber-500/80 bg-amber-500/5 dark:bg-amber-500/10"
-                        : "border-stone-200 dark:border-stone-800 bg-stone-50/40 dark:bg-stone-900/40 hover:border-stone-300 dark:hover:border-stone-700"
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                      isIncluded
+                        ? "border-emerald-500/40 bg-emerald-500/5 dark:bg-emerald-500/10 cursor-default"
+                        : isChecked
+                          ? "border-amber-500/80 bg-amber-500/5 dark:bg-amber-500/10"
+                          : "border-stone-200 dark:border-stone-800 bg-stone-50/40 dark:bg-stone-900/40 hover:border-stone-300 dark:hover:border-stone-700"
                     }`}
                   >
-                    <div className="flex items-start gap-3">
-                      <div className={`w-5 h-5 rounded-lg mt-0.5 border flex items-center justify-center transition-colors shrink-0 ${
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-colors shrink-0 ${
                         isChecked
-                          ? "bg-amber-500 border-amber-500 text-stone-950"
+                          ? isIncluded ? "bg-emerald-600 border-emerald-600 text-white" : "bg-amber-500 border-amber-500 text-stone-950"
                           : "border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
                       }`}>
                         {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                       </div>
-                      <div className="space-y-0.5">
+                      <div>
                         <span className="text-sm font-serif font-bold text-stone-900 dark:text-stone-100 block">
                           {addon.label}
                         </span>
@@ -460,8 +313,12 @@ export default function InstantQuoteCalculator({
                       </div>
                     </div>
 
-                    <span className="text-xs font-mono font-bold text-amber-700 dark:text-amber-400 shrink-0">
-                      + {addonPriceFormatted}
+                    <span className={`text-xs font-mono font-bold shrink-0 px-2.5 py-1 rounded-lg ${
+                      isIncluded
+                        ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase text-[10px]"
+                        : "text-amber-700 dark:text-amber-400"
+                    }`}>
+                      {isIncluded ? "Incluido" : `+ ${addonPriceFormatted}`}
                     </span>
                   </div>
                 );
@@ -480,17 +337,17 @@ export default function InstantQuoteCalculator({
                 Resumen de Inversión
               </span>
               <h4 className="font-serif font-bold text-2xl text-stone-900 dark:text-stone-50">
-                {currentService.title}
+                {currentCatalogItem.title}
               </h4>
               <p className="text-xs text-stone-600 dark:text-stone-300 font-normal">
-                Tiempo de entrega estimado: <strong className="text-stone-900 dark:text-stone-100">{currentService.delivery}</strong>
+                Paquete: <strong className="text-stone-900 dark:text-stone-100">{currentPackage?.name}</strong> · Entrega: <strong className="text-stone-900 dark:text-stone-100">{currentPackage?.delivery || currentCatalogItem.deliveryTime}</strong>
               </p>
             </div>
 
             {/* Price breakdown */}
             <div className="space-y-3 text-xs">
               <div className="flex items-center justify-between text-stone-700 dark:text-stone-300">
-                <span>Precio Base ({currencyMeta.symbol})</span>
+                <span>Precio Base ({currentPackage?.name})</span>
                 <span className="font-mono font-semibold">{formatCurrency(currentBasePrice, currency)}</span>
               </div>
 
@@ -500,7 +357,7 @@ export default function InstantQuoteCalculator({
                     Extras Seleccionados ({selectedAddons.length})
                   </span>
                   {selectedAddons.map((id) => {
-                    const addon = currentService.addons.find((a) => a.id === id);
+                    const addon = currentCatalogItem.addons.find((a) => a.id === id);
                     if (!addon) return null;
                     const addonCost = convertPrice(addon.priceInPEN, currency);
                     return (
@@ -537,10 +394,10 @@ export default function InstantQuoteCalculator({
             {/* Dynamic Included Benefits */}
             <div className="space-y-2.5 pt-2">
               <span className="text-xs font-bold font-space uppercase tracking-wider text-stone-800 dark:text-stone-200 block">
-                Beneficios Incluidos:
+                Beneficios Incluidos ({currentPackage?.name}):
               </span>
               <ul className="space-y-1.5 text-xs text-stone-700 dark:text-stone-300 font-normal">
-                {currentService.benefits.map((benefit, idx) => (
+                {currentPackage?.benefits.map((benefit, idx) => (
                   <li key={idx} className="flex items-start gap-2">
                     <Check className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                     <span>{benefit}</span>
@@ -569,10 +426,6 @@ export default function InstantQuoteCalculator({
                 <span>Consultar por WhatsApp</span>
               </button>
             </div>
-
-            <p className="text-xs text-stone-500 dark:text-stone-400 text-center font-normal pt-1">
-              Atención personalizada y asesoría directa por directores de arte V.A.C.
-            </p>
 
           </div>
         </div>

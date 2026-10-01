@@ -126,6 +126,7 @@ export default function App() {
   const [trackedResultData, setTrackedResultData] = useState<any | null>(null);
   const [trackingErrorMsg, setTrackingErrorMsg] = useState("");
   const [newlyCreatedCodeModal, setNewlyCreatedCodeModal] = useState<string | null>(null);
+  const [selectedInitialPackage, setSelectedInitialPackage] = useState<string | undefined>(undefined);
 
   const [adminDisplayName, setAdminDisplayName] = useState<string>("Administrador V.A.C.");
 
@@ -361,7 +362,8 @@ export default function App() {
   };
 
   // Helper to open the registration form with a pre-selected project type & notes
-  const handleStartNewOrder = (type: ProjectType, prefilledNotes?: string) => {
+  const handleStartNewOrder = (type: ProjectType, prefilledNotes?: string, packageId?: string) => {
+    setSelectedInitialPackage(packageId);
     setEditingProject({
       id: "",
       clientName: "",
@@ -1103,8 +1105,8 @@ export default function App() {
         <ServicePreviewModal
           service={selectedServiceForPreview}
           onClose={() => setSelectedServiceForPreview(null)}
-          onOrder={(type) => {
-            handleStartNewOrder(type);
+          onOrder={(type, packageId) => {
+            handleStartNewOrder(type, undefined, packageId);
           }}
         />
       )}
@@ -1117,7 +1119,11 @@ export default function App() {
           onClose={() => {
             setFormModalOpen(false);
             setEditingProject(undefined);
+            setSelectedInitialPackage(undefined);
           }}
+          initialServiceType={editingProject?.type}
+          initialPackageId={selectedInitialPackage}
+          isAdminContext={isAdminAuthenticated}
         />
       )}
 

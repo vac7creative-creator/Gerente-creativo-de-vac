@@ -120,6 +120,14 @@ export interface OtherDetails {
   attachmentsInfo: string;
 }
 
+export interface ProjectMediaFile {
+  id: string;
+  name: string;
+  size?: number;
+  type?: string;
+  url: string;
+}
+
 export interface Project {
   id: string;
   clientName: string;
@@ -130,6 +138,9 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   trackingCode?: string;
+  packageId?: string;
+  uploadedFiles?: ProjectMediaFile[];
+  googleDriveUrl?: string;
   
   // Dynamic fields based on type
   weddingDetails?: WeddingDetails;
