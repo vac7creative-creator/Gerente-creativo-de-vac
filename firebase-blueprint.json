@@ -1,0 +1,98 @@
+{
+  "entities": {
+    "Project": {
+      "title": "Project",
+      "description": "Un proyecto o pedido de diseño de V.A.C. Creative Studio (boda, 15 años, carta digital, etc.)",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único del proyecto"
+        },
+        "clientName": {
+          "type": "string",
+          "description": "Nombre completo del cliente o contacto principal"
+        },
+        "clientPhone": {
+          "type": "string",
+          "description": "Número de teléfono o WhatsApp del cliente"
+        },
+        "clientEmail": {
+          "type": "string",
+          "description": "Correo electrónico de contacto"
+        },
+        "type": {
+          "type": "string",
+          "description": "Tipo de servicio solicitado"
+        },
+        "status": {
+          "type": "string",
+          "description": "Estado actual del flujo de trabajo"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Marca de tiempo ISO de creación"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Marca de tiempo ISO de última actualización"
+        },
+        "generalNotes": {
+          "type": "string",
+          "description": "Notas generales o requerimientos particulares"
+        },
+        "weddingDetails": {
+          "type": "object",
+          "description": "Detalles específicos si el proyecto es una invitación de boda"
+        },
+        "xvDetails": {
+          "type": "object",
+          "description": "Detalles específicos si el proyecto es una invitación de 15 años"
+        },
+        "menuDetails": {
+          "type": "object",
+          "description": "Detalles específicos si el proyecto es una carta o menú digital"
+        },
+        "otherDetails": {
+          "type": "object",
+          "description": "Detalles específicos para otros servicios creativos"
+        }
+      },
+      "required": ["id", "clientName", "type", "status", "createdAt", "updatedAt"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Credenciales y roles administrativos del estudio en Firebase",
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "description": "Nombre de usuario único de administración"
+        },
+        "password": {
+          "type": "string",
+          "description": "Contraseña de acceso seguro"
+        },
+        "role": {
+          "type": "string",
+          "description": "Rol de acceso del usuario (admin / superadmin)"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Marca de tiempo ISO de actualización"
+        }
+      },
+      "required": ["username", "password", "role"]
+    }
+  },
+  "firestore": {
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Colección principal de proyectos y órdenes de diseño de V.A.C. Creative Studio"
+    },
+    "/admins/{adminId}": {
+      "schema": "AdminUser",
+      "description": "Colección de credenciales y roles autorizados para el acceso a la consola de administración"
+    }
+  }
+}
