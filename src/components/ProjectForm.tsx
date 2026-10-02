@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   Project, 
   ProjectType, 
@@ -40,7 +40,7 @@ import {
   Upload,
   ArrowRight
 } from "lucide-react";
-import { SERVICES_CATALOG_DATA, ServiceCatalogItem, PackageItem } from "../data/servicesCatalog";
+import { SERVICES_CATALOG_DATA, ServiceCatalogItem, PackageItem, isFeatureActive } from "../data/servicesCatalog";
 import { CurrencyCode, detectUserCurrency, formatCurrencyPrice } from "../utils/currency";
 import MediaUploader from "./MediaUploader";
 
@@ -199,7 +199,15 @@ export default function ProjectForm({
   const [brandingColors, setBrandingColors] = useState("");
   const [brandingRequirements, setBrandingRequirements] = useState("");
 
-  // 10. General Other Details State
+  // 10. Artes Multimedia
+  const [artPieceType, setArtPieceType] = useState("Flyer Promocional / Evento");
+  const [artDimensions, setArtDimensions] = useState("Vertical 9:16 (Stories / Reels / TikTok)");
+  const [artTitle, setArtTitle] = useState("");
+  const [artCopy, setArtCopy] = useState("");
+  const [artStyle, setArtStyle] = useState("Moderno & Publicitario");
+  const [artColors, setArtColors] = useState("");
+
+  // 11. General Other Details State
   const [otherDescription, setOtherDescription] = useState("");
   const [otherRequirements, setOtherRequirements] = useState("");
 
@@ -208,13 +216,39 @@ export default function ProjectForm({
   const packages: PackageItem[] = currentCatalogItem.packages || [];
   const currentPackage = packages.find((p) => p.id === selectedPackageId) || packages[0];
 
-  // When selectedType changes, reset package to first available and set initial variant
+  const isInitialMount = useRef(true);
+
+  // Sync initialPackageId if prop updates from parent
   useEffect(() => {
-    if (currentCatalogItem.packages.length > 0) {
+    if (initialPackageId && currentCatalogItem.packages.some((p) => p.id === initialPackageId)) {
+      setSelectedPackageId(initialPackageId);
+    }
+  }, [initialPackageId]);
+
+  // When selectedType changes, DO NOT aggressively reset if packageId is valid or coming from initial/existing
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      if (initialPackageId && currentCatalogItem.packages.some((p) => p.id === initialPackageId)) {
+        setSelectedPackageId(initialPackageId);
+        return;
+      }
+      if (project?.packageId && currentCatalogItem.packages.some((p) => p.id === project.packageId)) {
+        setSelectedPackageId(project.packageId);
+        return;
+      }
+    }
+
+    // Only switch package if the currently selected package is invalid for the new service type
+    const packageExistsInCurrent = currentCatalogItem.packages.some((p) => p.id === selectedPackageId);
+    if (!packageExistsInCurrent && currentCatalogItem.packages.length > 0) {
       setSelectedPackageId(currentCatalogItem.packages[0].id);
     }
+
     if (currentCatalogItem.variants && currentCatalogItem.variants.length > 0) {
-      setServiceVariant(currentCatalogItem.variants[0].label);
+      if (!serviceVariant || !currentCatalogItem.variants.some((v) => v.label === serviceVariant)) {
+        setServiceVariant(currentCatalogItem.variants[0].label);
+      }
     } else {
       setServiceVariant("");
     }
@@ -300,9 +334,9 @@ export default function ProjectForm({
   }, [project]);
 
   // Calculate total price: DO NOT double charge if included in package!
-  const basePrice = currentPackage ? currentPackage.priceInPEN : currentCatalogItem.packages[0]?.priceInPEN || 100;
+  const basePrice = currentPackage?.priceInPEN ?? (currentCatalogItem.packages[0]?.priceInPEN ?? 0);
   const addonsTotal = selectedAddons.reduce((sum, addId) => {
-    if (currentPackage?.includedFeatureIds.includes(addId)) return sum;
+    if (isFeatureActive(addId, currentPackage, [])) return sum;
     const addon = currentCatalogItem.addons.find((a) => a.id === addId);
     return sum + (addon ? addon.priceInPEN : 0);
   }, 0);
@@ -385,32 +419,46 @@ export default function ProjectForm({
         colorPaleteCustomValue: isCustomPalette ? weddingPaletteCustom : undefined,
         visualStyle: weddingVisualStyle,
         extras: {
-          cuentaRegresiva: currentPackage?.includedFeatureIds.includes("cuenta_regresiva") || selectedAddons.includes("cuenta_regresiva"),
-          galeriaFotos: currentPackage?.includedFeatureIds.includes("galeria_fotos") || selectedAddons.includes("galeria_fotos"),
-          historiaAmor: currentPackage?.includedFeatureIds.includes("historia_amor") || selectedAddons.includes("historia_amor"),
-          confirmacionWhatsapp: currentPackage?.includedFeatureIds.includes("confirmacion_whatsapp") || selectedAddons.includes("confirmacion_whatsapp"),
-          mesaRegalos: currentPackage?.includedFeatureIds.includes("mesa_regalos") || selectedAddons.includes("mesa_regalos"),
-          dressCode: currentPackage?.includedFeatureIds.includes("dress_code") || selectedAddons.includes("dress_code"),
-          videoFondo: false,
-          animacionesPremium: currentPackage?.includedFeatureIds.includes("animaciones_premium") || selectedAddons.includes("animaciones_premium")
+          cuentaRegresiva: isFeatureActive("cuenta_regresiva", currentPackage, selectedAddons),
+          galeriaFotos: isFeatureActive("galeria_fotos", currentPackage, selectedAddons),
+          historiaAmor: isFeatureActive("historia_amor", currentPackage, selectedAddons),
+          confirmacionWhatsapp: isFeatureActive("confirmacion_whatsapp", currentPackage, selectedAddons),
+          mesaRegalos: isFeatureActive("mesa_regalos", currentPackage, selectedAddons),
+          dressCode: isFeatureActive("dress_code", currentPackage, selectedAddons),
+          videoFondo: isFeatureActive("video_slideshow", currentPackage, selectedAddons),
+          animacionesPremium: isFeatureActive("animaciones_premium", currentPackage, selectedAddons)
         }
       };
     } else if (selectedType === ProjectType.XV_ANOS) {
+      const hasMusica = isFeatureActive("musica", currentPackage, selectedAddons);
+      const hasGaleria = isFeatureActive("galeria_fotos", currentPackage, selectedAddons);
+      const hasCuentaRegresiva = isFeatureActive("cuenta_regresiva", currentPackage, selectedAddons);
+      const hasMaps = isFeatureActive("google_maps", currentPackage, selectedAddons);
+      const hasWhatsapp = isFeatureActive("confirmacion_whatsapp", currentPackage, selectedAddons);
+      const hasDressCode = isFeatureActive("dress_code", currentPackage, selectedAddons);
+      const hasMesaRegalos = isFeatureActive("mesa_regalos", currentPackage, selectedAddons);
+      const hasVideo = isFeatureActive("video_slideshow", currentPackage, selectedAddons);
+      const hasAnimaciones = isFeatureActive("animaciones_premium", currentPackage, selectedAddons);
+
       xvDetailsObj = {
         quinceaneraName: xvName,
         fecha: xvFecha,
         hora: xvHora,
         lugar: xvLugar,
-        mapsUrl: xvMaps,
-        musicaNombre: xvMusica,
-        galleryEnabled: true,
-        videoEnabled: false,
-        videoUrl: xvYoutube,
+        mapsUrl: hasMaps ? xvMaps : "",
+        musicaNombre: hasMusica ? xvMusica : "",
+        galleryEnabled: hasGaleria,
+        videoEnabled: hasVideo,
+        videoUrl: hasVideo ? xvYoutube : "",
         colorPalette: xvPalette,
         tematica: xvTematica,
-        confirmacionWhatsapp: xvConfirmWhatsapp,
-        cuentaRegresiva: true,
-        extras: { mesaRegalos: true, dressCode: true, animacionesPremium: false }
+        confirmacionWhatsapp: hasWhatsapp ? xvConfirmWhatsapp : "",
+        cuentaRegresiva: hasCuentaRegresiva,
+        extras: { 
+          mesaRegalos: hasMesaRegalos, 
+          dressCode: hasDressCode, 
+          animacionesPremium: hasAnimaciones 
+        }
       };
     } else if (selectedType === ProjectType.CARTA_DIGITAL) {
       menuDetailsObj = {
@@ -455,6 +503,13 @@ export default function ProjectForm({
         description: `Identidad & Branding: ${brandingBrandName || clientName}. Rubro: ${brandingIndustry}. Personalidad: ${brandingPersonality}`,
         requirements: `Colores: ${brandingColors}. Requerimientos: ${brandingRequirements}`,
         colorPalette: brandingColors || "Elegante",
+        attachmentsInfo: googleDriveUrl
+      };
+    } else if (selectedType === ProjectType.ARTES_MULTIMEDIA) {
+      otherDetailsObj = {
+        description: `Diseño / Artes Multimedia: ${artPieceType} (${artDimensions}). Titular: ${artTitle || clientName}. Estilo: ${artStyle}`,
+        requirements: `Textos / Copy: ${artCopy}. Formato: ${artDimensions}. Estilo visual: ${artStyle}. Colores: ${artColors || "A criterio del diseñador"}.`,
+        colorPalette: artColors || "Publicitario",
         attachmentsInfo: googleDriveUrl
       };
     } else {
@@ -1597,7 +1652,100 @@ export default function ProjectForm({
               </div>
             )}
 
-            {/* 3I: OTRO */}
+            {/* 3I: ARTES MULTIMEDIA */}
+            {selectedType === ProjectType.ARTES_MULTIMEDIA && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 border-b border-stone-200 dark:border-stone-800 pb-2">
+                  <span className="w-5 h-px bg-amber-500" />
+                  <h3 className="text-xs uppercase font-space font-bold tracking-[0.2em] text-amber-700 dark:text-amber-400">
+                    Detalles de Artes Multimedia & Pieza Gráfica
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-space font-bold uppercase text-stone-700 dark:text-stone-300">Tipo de Pieza</label>
+                    <select
+                      value={artPieceType}
+                      onChange={(e) => setArtPieceType(e.target.value)}
+                      className="w-full h-12 px-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-sm focus:outline-none"
+                    >
+                      <option value="Flyer Promocional / Evento">Flyer Promocional / Evento</option>
+                      <option value="Post Cuadrado para Redes (1:1)">Post Cuadrado para Redes (1:1)</option>
+                      <option value="Historia / Reel Cover (9:16)">Historia / Reel Cover (9:16)</option>
+                      <option value="Banner Publicitario Web">Banner Publicitario Web</option>
+                      <option value="Afiche Publicitario para Impresión">Afiche Publicitario para Impresión</option>
+                      <option value="Fotomontaje / Arte Digital Complejo">Fotomontaje / Arte Digital Complejo</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-space font-bold uppercase text-stone-700 dark:text-stone-300">Dimensiones / Formato</label>
+                    <select
+                      value={artDimensions}
+                      onChange={(e) => setArtDimensions(e.target.value)}
+                      className="w-full h-12 px-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-sm focus:outline-none"
+                    >
+                      <option value="Vertical 9:16 (Stories / Reels / TikTok)">Vertical 9:16 (Stories / Reels / TikTok)</option>
+                      <option value="Cuadrado 1:1 (Feed Instagram / Facebook)">Cuadrado 1:1 (Feed Instagram / Facebook)</option>
+                      <option value="Horizontal 16:9 (Banners / Web / YouTube)">Horizontal 16:9 (Banners / Web / YouTube)</option>
+                      <option value="A4 / Carta (Para impresión física)">A4 / Carta (Para impresión física)</option>
+                      <option value="Medida Personalizada">Medida Personalizada</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-space font-bold uppercase text-stone-700 dark:text-stone-300">Titular o Mensaje Principal</label>
+                    <input
+                      type="text"
+                      value={artTitle}
+                      onChange={(e) => setArtTitle(e.target.value)}
+                      placeholder="Ej. Gran Apertura / 50% Descuento / Concierto en Vivo"
+                      className="w-full h-12 px-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-sm focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-space font-bold uppercase text-stone-700 dark:text-stone-300">Estilo Visual Sugerido</label>
+                    <input
+                      type="text"
+                      value={artStyle}
+                      onChange={(e) => setArtStyle(e.target.value)}
+                      placeholder="Ej. Neón, Sofisticado, Corporativo sobrio, Minimalista..."
+                      className="w-full h-12 px-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-sm focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-space font-bold uppercase text-stone-700 dark:text-stone-300">
+                    Textos, Información y Detalles que deben figurar
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={artCopy}
+                    onChange={(e) => setArtCopy(e.target.value)}
+                    placeholder="Incluye fechas, lugares, ofertas, llamada a la acción, WhatsApp de contacto, etc."
+                    className="w-full p-3.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-xs text-stone-900 dark:text-stone-100 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-space font-bold uppercase text-stone-700 dark:text-stone-300">
+                    Colores o lineamientos visuales
+                  </label>
+                  <input
+                    type="text"
+                    value={artColors}
+                    onChange={(e) => setArtColors(e.target.value)}
+                    placeholder="Ej. Tonos oscuros con acentos dorados y magenta"
+                    className="w-full h-11 px-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-xs text-stone-900 dark:text-stone-100 focus:outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 3J: OTRO */}
             {selectedType === ProjectType.OTRO && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 border-b border-stone-200 dark:border-stone-800 pb-2">
@@ -1651,7 +1799,7 @@ export default function ProjectForm({
 
               <div className="space-y-2.5">
                 {currentCatalogItem.addons.map((addon) => {
-                  const isIncludedInPackage = currentPackage?.includedFeatureIds.includes(addon.id);
+                  const isIncludedInPackage = isFeatureActive(addon.id, currentPackage, []);
                   const isSelected = isIncludedInPackage || selectedAddons.includes(addon.id);
 
                   const toggleAddon = () => {

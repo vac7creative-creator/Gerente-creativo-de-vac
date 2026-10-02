@@ -23,6 +23,31 @@ export interface CategoryItem {
 
 export const MAIN_CATEGORIES: CategoryItem[] = [
   {
+    id: "artes-multimedia",
+    title: "Diseño / Artes Multimedia",
+    subtitle: "Flyers publicitarios, posts para redes, historias, banners y fotomontajes de alto impacto visual.",
+    deliveryTime: "24-48 Horas",
+    image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop",
+    iconName: "Palette",
+    type: ProjectType.ARTES_MULTIMEDIA,
+    isSubCatalogTrigger: false,
+    itinerary: [
+      { label: "Briefing Visual", desc: "Recopilamos copys, imágenes y objetivos de la pieza publicitaria." },
+      { label: "Composición de Arte", desc: "Montaje, efectos visuales y tratamiento tipográfico de impacto." },
+      { label: "Exportación & Entrega", desc: "Entrega en alta resolución lista para pautas, redes o impresión." }
+    ],
+    includes: [
+      "Piezas gráficas publicitarias personalizadas de autor",
+      "Composición tipográfica y jerarquía comercial persuasiva",
+      "Formatos optimizados para Instagram, WhatsApp, Facebook y web"
+    ],
+    notIncludes: [
+      "Campañas masivas de múltiples piezas (a cotizar)",
+      "Modelado 3D de alta densidad"
+    ],
+    difficulty: "Impacto Visual Publicitario"
+  },
+  {
     id: "diseno-grafico",
     title: "Diseño Gráfico",
     subtitle: "Identidad visual disruptiva y comunicación de alto impacto que define marcas.",
@@ -272,6 +297,30 @@ export const SERVICES_CATALOG: ServiceItem[] = [
     includes: ["Vectores originales", "Guía cromática", "Derechos comerciales"],
     notIncludes: ["Registro de marca legal"],
     difficulty: "Identidad Exclusiva"
+  },
+  {
+    id: "artes-multimedia",
+    type: ProjectType.ARTES_MULTIMEDIA,
+    title: "Diseño / Artes Multimedia",
+    subtitle: "Diseño de flyers, posts, afiches, banners, historias y fotomontajes de alto impacto visual.",
+    deliveryTime: "24-48 Horas",
+    image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop",
+    itinerary: [
+      { label: "Briefing Visual", desc: "Recopilación de textos, fotografías y objetivos comerciales de la pieza." },
+      { label: "Composición & Arte", desc: "Montaje gráfico, tratamiento de tipografías y efectos visuales." },
+      { label: "Ajuste & Entrega", desc: "Exportación en alta resolución en los formatos requeridos para redes o impresión." }
+    ],
+    includes: [
+      "Diseño de piezas gráficas de autor (no plantillas genéricas)",
+      "Composición tipográfica y jerarquía comercial persuasiva",
+      "Formatos optimizados para Instagram, Facebook, WhatsApp y web",
+      "Revisiones de estilo según política de V.A.C."
+    ],
+    notIncludes: [
+      "Campañas masivas de múltiples piezas (disponible a cotizar)",
+      "Ilustración 3D hiperrealista o modelado arquitectónico"
+    ],
+    difficulty: "Impacto Visual Publicitario"
   }
 ];
 
@@ -317,6 +366,39 @@ export interface ServiceCatalogItem {
   includes: string[];
   notIncludes: string[];
   difficulty: string;
+}
+
+/**
+ * Normalización de equivalencias para IDs funcionales entre paquetes y extras.
+ */
+export const FEATURE_ALIASES: Record<string, string[]> = {
+  galeria_fotos: ["galeria_fotos", "galeria", "galeria_ampliada"],
+  musica: ["musica", "musica_fondo", "musica_personalizada"],
+  cuenta_regresiva: ["cuenta_regresiva", "cronometro", "reloj_regresivo"],
+  google_maps: ["google_maps", "ubicacion_gps", "mapa_interactivo", "botones_ubicacion"],
+  confirmacion_whatsapp: ["confirmacion_whatsapp", "whatsapp_rsvp", "rsvp_whatsapp"],
+  dress_code: ["dress_code", "dress_code_avanzado", "codigo_vestimenta"],
+  mesa_regalos: ["mesa_regalos", "lluvia_sobres"],
+  album_colaborativo: ["album_colaborativo", "qr_album", "carga_invitados"],
+  qr_imprimible: ["qr_imprimible", "qr_acceso", "qr_exclusivo", "qr_album"],
+  rsvp_pases: ["rsvp_pases", "control_pases", "rsvp_avanzado"],
+  video_slideshow: ["video_slideshow", "video", "slideshow", "video_fondo"],
+  animaciones_premium: ["animaciones_premium", "animaciones"]
+};
+
+/**
+ * Determina de forma unificada si una característica está activa:
+ * Regla: Activa ÚNICAMENTE si está incluida en el paquete O seleccionada como extra.
+ */
+export function isFeatureActive(
+  canonicalOrAliasId: string,
+  pkg?: PackageItem | null,
+  selectedAddonIds: string[] = []
+): boolean {
+  const aliases = FEATURE_ALIASES[canonicalOrAliasId] || [canonicalOrAliasId];
+  const inPackage = pkg?.includedFeatureIds?.some((fId) => aliases.includes(fId)) ?? false;
+  const inAddons = selectedAddonIds.some((aId) => aliases.includes(aId));
+  return inPackage || inAddons;
 }
 
 /**
@@ -366,6 +448,11 @@ export const COMMERCIAL_PRICING_CONFIG = {
     logo: 150,        // Precio inicial sugerido
     identidad: 300,   // Precio inicial sugerido
     completo: 500     // Precio inicial sugerido
+  },
+  artesMultimedia: {
+    esencial: 40,     // Precio inicial sugerido: S/ 40
+    profesional: 70,  // Precio inicial sugerido: S/ 70
+    premium: 120      // Precio inicial sugerido: S/ 120
   },
   otro: {
     aMedida: 120
@@ -1422,7 +1509,150 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
     difficulty: "Identidad Exclusiva"
   },
 
-  // 9. OTROS SERVICIOS / ANIMACIÓN & PROYECTOS ESPECIALES
+  // 9. DISEÑO / ARTES MULTIMEDIA (PRECIOS INICIALES SUGERIDOS: Esencial 40, Profesional 70, Premium 120)
+  {
+    id: "artes-multimedia",
+    type: ProjectType.ARTES_MULTIMEDIA,
+    title: "Diseño / Artes Multimedia",
+    subtitle: "Diseño de flyers, posts, afiches, banners, historias y fotomontajes de alto impacto visual.",
+    description: "Creación de piezas gráficas publicitarias y artes digitales de alto impacto para redes o impresos.",
+    deliveryTime: "24-48 Horas",
+    image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop",
+    iconName: "Palette",
+    quotesOnlyFeatures: [
+      "Campañas publicitarias masivas de más de 10 piezas simultáneas (A cotizar)",
+      "Ilustración digital compleja y renderizado 3D (A cotizar)",
+      "Gigantografías y rotulaciones de gran escala para vía pública (A cotizar)"
+    ],
+    packages: [
+      {
+        id: "arte-esencial",
+        name: "Arte Esencial",
+        priceInPEN: COMMERCIAL_PRICING_CONFIG.artesMultimedia.esencial,
+        delivery: "24 a 48 horas",
+        description: "Ideal para flyer sencillo, publicación en redes, historia o banner básico.",
+        includedFeatureIds: [
+          "pieza_grafica_individual",
+          "textos_cliente",
+          "imagenes_proporcionadas",
+          "composicion_basica",
+          "formato_digital",
+          "exportacion_redes"
+        ],
+        benefits: [
+          "Una pieza gráfica publicitaria o promocional",
+          "Adaptación de textos y copys entregados por el cliente",
+          "Uso e integración de imágenes y logotipos proporcionados",
+          "Composición visual básica optimizada para captar atención",
+          "Formato digital de alta resolución (JPG/PNG)",
+          "Exportación lista para compartir en WhatsApp, historias o feed"
+        ],
+        upgradableFeatures: [
+          "Retoque fotográfico avanzado e integración multicapa",
+          "Efectos visuales y fotomontaje artístico de autor",
+          "Adaptaciones a múltiples formatos (Story, Feed, Banner)",
+          "Entrega de archivos fuente abiertos editables"
+        ]
+      },
+      {
+        id: "arte-profesional",
+        name: "Arte Profesional",
+        priceInPEN: COMMERCIAL_PRICING_CONFIG.artesMultimedia.profesional,
+        delivery: "24 a 48 horas",
+        description: "Composición profesional con retoque fotográfico, integración de varias imágenes y efectos.",
+        includedFeatureIds: [
+          "pieza_grafica_individual",
+          "textos_cliente",
+          "imagenes_proporcionadas",
+          "composicion_basica",
+          "formato_digital",
+          "exportacion_redes",
+          "composicion_profesional",
+          "retoque_fotografico",
+          "integracion_multicapa",
+          "efectos_visuales",
+          "tipografia_elaborada",
+          "adaptacion_formatos"
+        ],
+        benefits: [
+          "Todo lo del paquete Esencial",
+          "Composición gráfica profesional de nivel comercial",
+          "Retoque fotográfico digital para iluminación y colorimetría",
+          "Integración de múltiples imágenes y elementos visuales",
+          "Tratamiento y efectos visuales sobre el arte",
+          "Composición tipográfica y jerarquía de texto elaborada",
+          "Adaptación a un formato alternativo de cortesía (Feed + Story)"
+        ],
+        upgradableFeatures: [
+          "Fotomontaje complejo y manipulación digital de alta gama",
+          "Múltiples variantes de color o promocionales",
+          "Entrega de archivos fuente abiertos editables"
+        ]
+      },
+      {
+        id: "arte-premium",
+        name: "Arte Premium",
+        priceInPEN: COMMERCIAL_PRICING_CONFIG.artesMultimedia.premium,
+        delivery: "24 a 48 horas",
+        description: "Fotomontaje avanzado, retoque de autor, composición compleja, efectos y variantes.",
+        includedFeatureIds: [
+          "pieza_grafica_individual",
+          "textos_cliente",
+          "imagenes_proporcionadas",
+          "composicion_basica",
+          "formato_digital",
+          "exportacion_redes",
+          "composicion_profesional",
+          "retoque_fotografico",
+          "integracion_multicapa",
+          "efectos_visuales",
+          "tipografia_elaborada",
+          "adaptacion_formatos",
+          "fotomontaje_avanzado",
+          "retoque_avanzado",
+          "composicion_compleja",
+          "efectos_cinematicos",
+          "multiples_imagenes",
+          "variantes_promocionales",
+          "mayor_desarrollo_artistico"
+        ],
+        benefits: [
+          "Todo lo del paquete Profesional",
+          "Fotomontaje avanzado y manipulación digital creativa",
+          "Retoque de pieles y fondos de grado publicitario",
+          "Composición visual compleja con profundidad y texturas",
+          "Efectos visuales cinematográficos y destellos luminosos",
+          "Integración armónica de múltiples imágenes de alta densidad",
+          "Variantes promocionales adaptadas a todas las plataformas",
+          "Máximo nivel de desarrollo artístico de autor V.A.C."
+        ]
+      }
+    ],
+    addons: [
+      { id: "adaptacion_formato", label: "Adaptación a Formato Adicional (Story / Banner)", priceInPEN: 20, description: "Ajuste de dimensiones y composición para otra red social.", icon: "zap" },
+      { id: "retoque_extra", label: "Retoque Fotográfico Avanzado Adicional", priceInPEN: 25, description: "Mejora de iluminación, recorte y corrección cromática.", icon: "camera" },
+      { id: "archivos_editables", label: "Archivos Fuente Editables (.PSD / .AI)", priceInPEN: 30, description: "Capas organizadas y tipografías para edición futura.", icon: "qr" },
+      { id: "entrega_urgente", label: "Entrega Prioritaria (En menos de 24 horas)", priceInPEN: 35, description: "Desarrollo exprés en cola prioritaria.", icon: "zap" }
+    ],
+    itinerary: [
+      { label: "Recepción de Material", desc: "Envío de textos, logos e imágenes por el cliente." },
+      { label: "Composición de Arte", desc: "Montaje, efectos y retoque gráfico profesional." },
+      { label: "Revisión & Entrega", desc: "Aprobación y exportación en alta calidad para redes o imprenta." }
+    ],
+    includes: [
+      "Pieza gráfica diseñada a medida (no plantillas genéricas)",
+      "Alta resolución en formatos digitales (PNG, JPG)",
+      "Optimización para pantalla y compresión sin pérdida",
+      "Soporte y correcciones de estilo"
+    ],
+    notIncludes: [
+      "Campañas masivas de múltiples piezas (a cotizar)",
+      "Modelado o renderizado 3D de alta complejidad"
+    ],
+    difficulty: "Impacto Visual Publicitario"
+  },
+
+  // 10. OTROS SERVICIOS / ANIMACIÓN & PROYECTOS ESPECIALES
   {
     id: "otro",
     type: ProjectType.OTRO,

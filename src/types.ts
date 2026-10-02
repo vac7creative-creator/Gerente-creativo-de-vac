@@ -12,6 +12,7 @@ export enum ProjectType {
   FOTO_VIDEO = "Fotografía y Video",
   DISENO_GRAFICO = "Diseño Gráfico",
   LANDING_PAGE = "Landing Page",
+  ARTES_MULTIMEDIA = "Diseño / Artes Multimedia",
   OTRO = "Otro"
 }
 

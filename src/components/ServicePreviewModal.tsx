@@ -36,17 +36,9 @@ export default function ServicePreviewModal({
 
   const catalogItem: ServiceCatalogItem = SERVICES_CATALOG_DATA.find((s) => s.type === service.type) || SERVICES_CATALOG_DATA[0];
   const packages: PackageItem[] = catalogItem.packages || [];
-  const currentPkg = packages[selectedPkgIndex] || packages[0] || {
-    id: "default",
-    name: "Estándar",
-    priceInPEN: 100,
-    delivery: service.deliveryTime,
-    description: service.subtitle,
-    benefits: service.includes,
-    upgradableFeatures: []
-  };
+  const currentPkg: PackageItem | undefined = packages[selectedPkgIndex] || packages[0];
 
-  const currentPrice = currentPkg.priceInPEN;
+  const currentPrice = currentPkg?.priceInPEN != null ? currentPkg.priceInPEN : null;
 
   const nextPackage = () => {
     if (packages.length <= 1) return;
@@ -99,11 +91,11 @@ export default function ServicePreviewModal({
             <div className="flex flex-wrap gap-2 pt-2">
               <div className="bg-stone-900/80 backdrop-blur-xs text-white border border-stone-700 px-3.5 py-1.5 rounded-full font-mono text-xs font-semibold flex items-center gap-1.5 shadow-md">
                 <Clock className="w-3.5 h-3.5 text-amber-400" />
-                <span>{currentPkg.delivery}</span>
+                <span>{currentPkg?.delivery || service.deliveryTime}</span>
               </div>
               <div className="bg-stone-900/80 backdrop-blur-xs text-amber-400 border border-amber-500/40 px-3.5 py-1.5 rounded-full font-mono text-xs font-bold flex items-center gap-1.5 shadow-md">
                 <Tag className="w-3.5 h-3.5" />
-                <span>S/ {currentPrice}</span>
+                <span>{currentPrice != null ? `S/ ${currentPrice}` : "Precio a cotizar"}</span>
               </div>
             </div>
           </div>
@@ -340,15 +332,17 @@ export default function ServicePreviewModal({
           {/* ACTION BUTTON */}
           <div className="pt-8 border-t border-stone-200/80 dark:border-stone-800 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-center sm:text-left">
-              <span className="text-xs text-stone-500 block uppercase font-mono tracking-wider">Paquete {currentPkg.name}</span>
+              <span className="text-xs text-stone-500 block uppercase font-mono tracking-wider">
+                {currentPkg ? `Paquete ${currentPkg.name}` : "Servicio a cotizar"}
+              </span>
               <span className="text-base font-bold text-amber-700 dark:text-amber-400 font-mono">
-                S/ {currentPrice}
+                {currentPrice != null ? `S/ ${currentPrice}` : "A cotizar"}
               </span>
             </div>
 
             <button
               onClick={() => {
-                onOrder(service.type, currentPkg.id);
+                onOrder(service.type, currentPkg?.id);
                 onClose();
               }}
               id="confirm-checkout-btn"

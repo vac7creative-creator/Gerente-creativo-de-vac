@@ -19,7 +19,8 @@ import {
   Zap
 } from "lucide-react";
 import { ProjectType } from "../types";
-import { SERVICES_CATALOG_DATA, ServiceCatalogItem, PackageItem } from "../data/servicesCatalog";
+import { SERVICES_CATALOG_DATA, ServiceCatalogItem, PackageItem, isFeatureActive } from "../data/servicesCatalog";
+import { CONTACT_CONFIG } from "../config/contact";
 
 interface InstantQuoteCalculatorProps {
   onSelectServiceAndStartOrder: (type: ProjectType, prefilledNotes?: string, packageId?: string) => void;
@@ -53,11 +54,11 @@ export default function InstantQuoteCalculator({
     setSelectedAddons((prev) => prev.filter((id) => validAddonIds.includes(id)));
   }, [selectedType]);
 
-  const basePricePEN = currentPackage ? currentPackage.priceInPEN : currentCatalogItem.packages[0]?.priceInPEN || 100;
+  const basePricePEN = currentPackage?.priceInPEN ?? (currentCatalogItem.packages[0]?.priceInPEN ?? 0);
 
   // Calculate extras: DO NOT double charge if included in package!
   const addonsTotalPEN = selectedAddons.reduce((sum, id) => {
-    const isIncluded = currentPackage?.includedFeatureIds.includes(id);
+    const isIncluded = isFeatureActive(id, currentPackage, []);
     if (isIncluded) return sum; // S/ 0 extra
     const addon = currentCatalogItem.addons.find((a) => a.id === id);
     return sum + (addon ? addon.priceInPEN : 0);
@@ -66,7 +67,7 @@ export default function InstantQuoteCalculator({
   const displayedTotalPrice = basePricePEN + addonsTotalPEN;
 
   const toggleAddon = (id: string) => {
-    if (currentPackage?.includedFeatureIds.includes(id)) return; // Already included
+    if (isFeatureActive(id, currentPackage, [])) return; // Already included
     if (selectedAddons.includes(id)) {
       setSelectedAddons(selectedAddons.filter((item) => item !== id));
     } else {
@@ -76,7 +77,7 @@ export default function InstantQuoteCalculator({
 
   const handleStartOrder = () => {
     const validPaidAddonNames = selectedAddons
-      .filter((id) => !currentPackage?.includedFeatureIds.includes(id))
+      .filter((id) => !isFeatureActive(id, currentPackage, []))
       .map((id) => currentCatalogItem.addons.find((a) => a.id === id)?.label)
       .filter(Boolean)
       .join(", ");
@@ -88,16 +89,14 @@ export default function InstantQuoteCalculator({
 
   const handleContactWhatsApp = () => {
     const validPaidAddonNames = selectedAddons
-      .filter((id) => !currentPackage?.includedFeatureIds.includes(id))
+      .filter((id) => !isFeatureActive(id, currentPackage, []))
       .map((id) => currentCatalogItem.addons.find((a) => a.id === id)?.label)
       .filter(Boolean)
       .join(", ");
 
     const variantText = currentVariant ? ` [Variante: ${currentVariant.label}]` : "";
-    const message = encodeURIComponent(
-      `¡Hola V.A.C. Creative! 👋 Deseo cotizar *${currentCatalogItem.title}*${variantText} en el paquete *${currentPackage?.name}* con un estimado de *S/ ${displayedTotalPrice}*.\n\n*Extras elegidos:* ${validPaidAddonNames || "Paquete base"}.\n*Tiempo estimado de entrega:* ${currentPackage?.delivery || currentCatalogItem.deliveryTime}.\n\n¿Podrían brindarme asesoría para iniciar mi proyecto?`
-    );
-    window.open(`https://wa.me/525512345678?text=${message}`, "_blank", "noopener,noreferrer");
+    const message = `¡Hola V.A.C. Creative! 👋 Deseo cotizar *${currentCatalogItem.title}*${variantText} en el paquete *${currentPackage?.name}* con un estimado de *S/ ${displayedTotalPrice}*.\n\n*Extras elegidos:* ${validPaidAddonNames || "Paquete base"}.\n*Tiempo estimado de entrega:* ${currentPackage?.delivery || currentCatalogItem.deliveryTime}.\n\n¿Podrían brindarme asesoría para iniciar mi proyecto?`;
+    window.open(CONTACT_CONFIG.createWhatsAppUrl(message), "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -140,7 +139,7 @@ export default function InstantQuoteCalculator({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {SERVICES_CATALOG_DATA.map((service) => {
                 const isSelected = service.type === selectedType;
-                const startingPrice = service.packages[0]?.priceInPEN || 100;
+                const startingPrice = service.packages[0]?.priceInPEN;
 
                 return (
                   <button
@@ -175,7 +174,7 @@ export default function InstantQuoteCalculator({
                         {service.deliveryTime}
                       </span>
                       <span className="font-bold text-stone-900 dark:text-stone-100">
-                        Desde S/ {startingPrice}
+                        {startingPrice != null ? `Desde S/ ${startingPrice}` : "A cotizar"}
                       </span>
                     </div>
                   </button>
@@ -263,7 +262,7 @@ export default function InstantQuoteCalculator({
 
             <div className="space-y-2.5">
               {currentCatalogItem.addons.map((addon) => {
-                const isIncluded = currentPackage?.includedFeatureIds.includes(addon.id);
+                const isIncluded = isFeatureActive(addon.id, currentPackage, []);
                 const isChecked = isIncluded || selectedAddons.includes(addon.id);
 
                 return (

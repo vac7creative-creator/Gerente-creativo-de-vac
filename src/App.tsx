@@ -41,6 +41,8 @@ import AdminLoginModal from "./components/AdminLoginModal";
 
 // Data
 import { SERVICES_CATALOG, MAIN_CATEGORIES, SERVICES_CATALOG_DATA } from "./data/servicesCatalog";
+import { PORTFOLIO_ITEMS, PortfolioItem } from "./data/portfolioCatalog";
+import { CONTACT_CONFIG } from "./config/contact";
 
 // Icons
 import { 
@@ -69,7 +71,8 @@ import {
   ShieldCheck,
   Flame,
   HelpCircle,
-  Star
+  Star,
+  Eye
 } from "lucide-react";
 
 const LOCAL_STORAGE_KEY = "vac_creative_manager_projects";
@@ -109,7 +112,10 @@ export default function App() {
   const [isDatabaseOpen, setIsDatabaseOpen] = useState(false);
 
   // Client view Navigation Tabs
-  const [clientTab, setClientTab] = useState<"catalog" | "quote" | "tracker">("catalog");
+  const [clientTab, setClientTab] = useState<"catalog" | "portfolio" | "quote" | "tracker">("catalog");
+  const [portfolioServiceFilter, setPortfolioServiceFilter] = useState<string>("Todos");
+  const [portfolioPackageFilter, setPortfolioPackageFilter] = useState<string>("Todos");
+  const [portfolioPreviewItem, setPortfolioPreviewItem] = useState<PortfolioItem | null>(null);
 
   // View Mode: Client vs Admin
   const [viewMode, setViewMode] = useState<"client" | "admin">("client");
@@ -370,6 +376,7 @@ export default function App() {
       clientPhone: "",
       clientEmail: "",
       type: type,
+      packageId: packageId,
       status: ProjectStatus.PENDIENTE,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -617,7 +624,7 @@ export default function App() {
           </div>
 
           {/* EDITORIAL SUB-NAVIGATION TABS */}
-          <div className="flex items-center justify-start gap-4 border-b border-stone-200/80 dark:border-stone-800 pb-4 overflow-x-auto">
+          <div className="flex items-center justify-start gap-3 border-b border-stone-200/80 dark:border-stone-800 pb-4 overflow-x-auto">
             <button
               onClick={() => setClientTab("catalog")}
               className={`px-5 py-2.5 rounded-full text-xs font-bold font-space uppercase tracking-[0.15em] transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
@@ -626,7 +633,22 @@ export default function App() {
                   : "bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-white border border-stone-200 dark:border-stone-800"
               }`}
             >
-              <span>Colección & Modelos</span>
+              <span>Servicios & Paquetes</span>
+            </button>
+
+            <button
+              onClick={() => setClientTab("portfolio")}
+              className={`px-5 py-2.5 rounded-full text-xs font-bold font-space uppercase tracking-[0.15em] transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+                clientTab === "portfolio"
+                  ? "bg-stone-950 text-white dark:bg-amber-400 dark:text-stone-950 shadow-md"
+                  : "bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-white border border-stone-200 dark:border-stone-800"
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Nuestros Trabajos</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-300 font-mono font-bold">
+                {PORTFOLIO_ITEMS.length}
+              </span>
             </button>
 
             <button
@@ -667,9 +689,17 @@ export default function App() {
                       Colección para Momentos Trascendentes
                     </h2>
                   </div>
-                  <p className="text-xs text-stone-500 dark:text-stone-400 font-light max-w-sm">
-                    Selecciona una plantilla para explorar la anatomía del diseño, itinerario y solicitar tu proyecto.
-                  </p>
+                  <div className="space-y-1 text-right sm:text-left">
+                    <p className="text-xs text-stone-500 dark:text-stone-400 font-light max-w-sm">
+                      Explora nuestros estilos de referencia y anatomía interactiva. Cada proyecto se personaliza a la medida de tu celebración o negocio.
+                    </p>
+                    <button
+                      onClick={() => setClientTab("portfolio")}
+                      className="text-xs font-space font-bold text-amber-700 dark:text-amber-400 hover:underline inline-flex items-center gap-1 cursor-pointer pt-1"
+                    >
+                      <span>Ver galería de muestras realizadas →</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Grid Editorial de Modelos */}
@@ -713,7 +743,11 @@ export default function App() {
 
                         <div className="pt-4 border-t border-stone-100 dark:border-stone-800/80 flex items-center justify-between text-xs font-space">
                           <span className="text-amber-700 dark:text-amber-400 font-bold font-mono">
-                            Desde S/ {SERVICES_CATALOG_DATA.find(s => s.type === service.type)?.packages[0]?.priceInPEN || 100}
+                            {(() => {
+                              const srv = SERVICES_CATALOG_DATA.find(s => s.type === service.type);
+                              const p = srv?.packages[0]?.priceInPEN;
+                              return p != null ? `Desde S/ ${p}` : "Precio a cotizar";
+                            })()}
                           </span>
                           <span className="text-stone-700 dark:text-stone-300 font-bold uppercase tracking-wider group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
                             Ver Ficha →
@@ -764,7 +798,11 @@ export default function App() {
 
                       <div className="pt-4 border-t border-stone-100 dark:border-stone-800/80 flex items-center justify-between text-xs font-space font-medium text-stone-500 dark:text-stone-400">
                         <span className="font-mono font-bold text-amber-700 dark:text-amber-400">
-                          Desde S/ {SERVICES_CATALOG_DATA.find(s => s.type === cat.type)?.packages[0]?.priceInPEN || 100}
+                          {(() => {
+                            const srv = SERVICES_CATALOG_DATA.find(s => s.type === cat.type);
+                            const p = srv?.packages[0]?.priceInPEN;
+                            return p != null ? `Desde S/ ${p}` : "Precio a cotizar";
+                          })()}
                         </span>
                         <span className="text-stone-700 dark:text-stone-300 font-bold group-hover:translate-x-1 transition-transform">
                           Detalles →
@@ -778,12 +816,248 @@ export default function App() {
             </div>
           )}
 
+          {/* TAB: MUESTRAS & NUESTROS TRABAJOS DE AUTOR */}
+          {clientTab === "portfolio" && (
+            <div className="space-y-10 animate-fade-in">
+              
+              {/* Header */}
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-stone-200/80 dark:border-stone-800 pb-5">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-space font-bold uppercase tracking-[0.25em] text-amber-700 dark:text-amber-400">
+                    Estilos de Referencia & Inspiración Visual
+                  </span>
+                  <h2 className="text-3xl sm:text-4xl font-serif font-bold text-stone-950 dark:text-stone-50 tracking-tight">
+                    Muestras de Nuestro Trabajo
+                  </h2>
+                </div>
+                <p className="text-xs text-stone-500 dark:text-stone-400 font-light max-w-md">
+                  No vendemos plantillas idénticas: cada proyecto se personaliza con la identidad, fotos y requerimientos de cada cliente. Inspírate con estas líneas visuales de autor.
+                </p>
+              </div>
+
+              {/* FILTROS DE DOS NIVELES */}
+              <div className="space-y-4 bg-white dark:bg-[#141311] border border-stone-200/80 dark:border-stone-800 rounded-3xl p-5 sm:p-6 shadow-sm">
+                
+                {/* NIVEL 1: SERVICIO */}
+                <div className="space-y-2">
+                  <span className="text-[11px] font-space font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 block">
+                    1. Filtrar por Tipo de Servicio
+                  </span>
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
+                    {[
+                      { label: "Todos los Servicios", value: "Todos" },
+                      { label: "Bodas", value: ProjectType.BODA },
+                      { label: "XV Años", value: ProjectType.XV_ANOS },
+                      { label: "Cumpleaños", value: ProjectType.CUMPLEANOS },
+                      { label: "Carta Digital", value: ProjectType.CARTA_DIGITAL },
+                      { label: "Landing Page", value: ProjectType.LANDING_PAGE },
+                      { label: "Artes Multimedia", value: ProjectType.ARTES_MULTIMEDIA },
+                      { label: "Branding", value: ProjectType.DISENO_GRAFICO },
+                      { label: "Audiovisual", value: ProjectType.FOTO_VIDEO },
+                      { label: "Spot", value: ProjectType.SPOT }
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => {
+                          setPortfolioServiceFilter(opt.value);
+                          setPortfolioPackageFilter("Todos");
+                        }}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-space font-medium transition-all shrink-0 cursor-pointer ${
+                          portfolioServiceFilter === opt.value
+                            ? "bg-stone-950 text-white dark:bg-amber-400 dark:text-stone-950 font-bold shadow-xs"
+                            : "bg-stone-100 dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-800"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* NIVEL 2: PAQUETE (DINÁMICO SEGÚN SERVICIO SELECCIONADO) */}
+                {portfolioServiceFilter !== "Todos" && (() => {
+                  const currentSrv = SERVICES_CATALOG_DATA.find((s) => s.type === portfolioServiceFilter);
+                  const pkgList = currentSrv?.packages || [];
+                  if (pkgList.length === 0) return null;
+                  return (
+                    <div className="space-y-2 pt-3 border-t border-stone-100 dark:border-stone-800/80">
+                      <span className="text-[11px] font-space font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 block">
+                        2. Filtrar por Nivel de Paquete ({currentSrv?.title})
+                      </span>
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+                        <button
+                          onClick={() => setPortfolioPackageFilter("Todos")}
+                          className={`px-3 py-1 rounded-full text-xs font-space font-medium transition-all shrink-0 cursor-pointer ${
+                            portfolioPackageFilter === "Todos"
+                              ? "bg-amber-500 text-stone-950 font-bold"
+                              : "bg-stone-100 dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-800"
+                          }`}
+                        >
+                          Todos los Paquetes
+                        </button>
+                        {pkgList.map((p) => (
+                          <button
+                            key={p.id}
+                            onClick={() => setPortfolioPackageFilter(p.id)}
+                            className={`px-3 py-1 rounded-full text-xs font-space font-medium transition-all shrink-0 cursor-pointer ${
+                              portfolioPackageFilter === p.id
+                                ? "bg-amber-500 text-stone-950 font-bold"
+                                : "bg-stone-100 dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-800"
+                            }`}
+                          >
+                            {p.name} {p.priceInPEN != null ? `(S/ ${p.priceInPEN})` : ""}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+              </div>
+
+              {/* GRID DE MUESTRAS */}
+              {(() => {
+                const filtered = PORTFOLIO_ITEMS.filter((item) => {
+                  if (portfolioServiceFilter !== "Todos" && item.serviceType !== portfolioServiceFilter) return false;
+                  if (portfolioPackageFilter !== "Todos" && item.packageId !== portfolioPackageFilter) return false;
+                  return true;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="h-64 flex flex-col items-center justify-center border border-dashed border-stone-300 dark:border-stone-800 rounded-3xl p-6 bg-white dark:bg-stone-900 text-center text-stone-400 space-y-2">
+                      <Sparkles className="w-8 h-8 text-amber-500/60" />
+                      <p className="text-sm font-semibold">No se encontraron muestras para los filtros seleccionados.</p>
+                      <button
+                        onClick={() => {
+                          setPortfolioServiceFilter("Todos");
+                          setPortfolioPackageFilter("Todos");
+                        }}
+                        className="text-xs text-amber-700 dark:text-amber-400 font-bold underline cursor-pointer mt-2"
+                      >
+                        Ver todas las muestras
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {filtered.map((item) => (
+                      <div
+                        key={item.id}
+                        className="group bg-white dark:bg-[#141311] border border-stone-200/80 dark:border-stone-800/80 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:border-amber-500/40 transition-all duration-300 flex flex-col justify-between"
+                      >
+                        {/* Image Preview with Badges */}
+                        <div className="relative h-64 overflow-hidden bg-stone-950">
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+
+                          <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                            <span className="bg-stone-950/80 backdrop-blur-md text-amber-400 border border-amber-500/30 rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-wider font-semibold">
+                              {item.serviceType}
+                            </span>
+                            <span className="bg-amber-500 text-stone-950 rounded-full px-2.5 py-0.5 font-space text-[10px] font-bold uppercase tracking-wider">
+                              Paquete {item.packageName}
+                            </span>
+                          </div>
+
+                          {/* Color accents */}
+                          {item.colorHighlights && (
+                            <div className="absolute top-4 right-4 flex gap-1 bg-stone-950/60 backdrop-blur-xs p-1.5 rounded-full border border-white/10">
+                              {item.colorHighlights.map((col, cIdx) => (
+                                <span
+                                  key={cIdx}
+                                  className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-xs"
+                                  style={{ backgroundColor: col }}
+                                  title={`Color: ${col}`}
+                                />
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="absolute bottom-4 left-4 right-4 space-y-1">
+                            <span className="text-[10px] uppercase font-space tracking-widest text-amber-300 font-bold block">
+                              Estilo de Referencia
+                            </span>
+                            <h3 className="font-serif font-bold text-white text-xl tracking-tight leading-snug drop-shadow-sm">
+                              {item.title}
+                            </h3>
+                          </div>
+                        </div>
+
+                        {/* Content & Actions */}
+                        <div className="p-6 space-y-5 flex-1 flex flex-col justify-between">
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold text-stone-900 dark:text-stone-100">
+                              {item.conceptSubtitle}
+                            </p>
+                            <p className="text-xs text-stone-500 dark:text-stone-400 font-light leading-relaxed line-clamp-3">
+                              {item.description}
+                            </p>
+
+                            {/* Tags */}
+                            {item.tags && item.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 pt-2">
+                                {item.tags.map((t, tIdx) => (
+                                  <span
+                                    key={tIdx}
+                                    className="text-[10px] font-space px-2 py-0.5 rounded-md bg-stone-100 dark:bg-stone-900 text-stone-600 dark:text-stone-400 border border-stone-200/60 dark:border-stone-800"
+                                  >
+                                    #{t}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="pt-4 border-t border-stone-100 dark:border-stone-800/80 flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setPortfolioPreviewItem(item)}
+                              className="px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 hover:bg-stone-100 dark:hover:bg-stone-850 text-stone-700 dark:text-stone-300 text-xs font-space font-medium transition-colors cursor-pointer flex items-center gap-1.5"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Ver muestra</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleStartNewOrder(
+                                  item.serviceType,
+                                  `Inspirado en la muestra de referencia: "${item.title}" (${item.packageName}).`,
+                                  item.packageId
+                                );
+                              }}
+                              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold font-space text-xs tracking-wider uppercase transition-all shadow-sm flex items-center gap-1.5 cursor-pointer shrink-0"
+                            >
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>Quiero algo así</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+            </div>
+          )}
+
           {/* TAB 2: COTIZADOR INSTANTANEO EN VIVO */}
           {clientTab === "quote" && (
             <div className="space-y-6 animate-fade-in">
               <InstantQuoteCalculator
-                onSelectServiceAndStartOrder={(type, notes) => {
-                  handleStartNewOrder(type, notes);
+                onSelectServiceAndStartOrder={(type, notes, packageId) => {
+                  handleStartNewOrder(type, notes, packageId);
                 }}
               />
             </div>

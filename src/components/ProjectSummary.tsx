@@ -225,7 +225,7 @@ export default function ProjectSummary({
               {(project.packageName || project.packageId || project.totalPrice) && (
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-xs font-bold font-space px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400">
-                    Paquete: {project.packageName || (project.packageId ? project.packageId.toUpperCase() : "Estándar")}
+                    Paquete: {project.packageName || (project.packageId ? project.packageId.toUpperCase() : "Paquete no definido")}
                   </span>
                   {project.serviceVariant && (
                     <span className="text-xs text-zinc-500">

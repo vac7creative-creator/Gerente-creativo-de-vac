@@ -46,6 +46,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   onStatusChange
 }) => {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [copiedTracking, setCopiedTracking] = useState(false);
   const { id, clientName, clientPhone, clientEmail, type, status, createdAt } = project;
 
   const handleNotifyClientWhatsApp = () => {
@@ -124,35 +125,38 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             type="button"
             onClick={() => {
               navigator.clipboard.writeText(project.trackingCode!);
-              alert("¡Código de seguimiento copiado al portapapeles!");
+              setCopiedTracking(true);
+              setTimeout(() => setCopiedTracking(false), 2000);
             }}
             className="px-2.5 py-1 bg-stone-900 text-white dark:bg-amber-400 dark:text-stone-950 rounded-lg text-[10px] font-bold font-space uppercase cursor-pointer shrink-0"
           >
-            Copiar
+            {copiedTracking ? "¡Copiado!" : "Copiar"}
           </button>
         </div>
       )}
 
       {/* Commercial Package and Price Badge */}
-      {(project.packageName || project.packageId || project.totalPrice) && (
-        <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl text-xs font-mono">
-          <div className="flex items-center gap-1.5 truncate pr-2">
-            <span className="text-[10px] uppercase font-space font-bold text-amber-700 dark:text-amber-400">
-              Paquete {project.packageName || (project.packageId ? project.packageId.toUpperCase() : "Estándar")}
+      <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl text-xs font-mono">
+        <div className="flex items-center gap-1.5 truncate pr-2">
+          <span className="text-[10px] uppercase font-space font-bold text-amber-700 dark:text-amber-400">
+            {project.packageName || (project.packageId ? `Paquete ${project.packageId.toUpperCase()}` : "Paquete no definido")}
+          </span>
+          {project.serviceVariant && (
+            <span className="text-[10px] text-stone-500 dark:text-stone-400 truncate">
+              · {project.serviceVariant}
             </span>
-            {project.serviceVariant && (
-              <span className="text-[10px] text-stone-500 dark:text-stone-400 truncate">
-                · {project.serviceVariant}
-              </span>
-            )}
-          </div>
-          {project.totalPrice ? (
-            <span className="font-bold text-amber-800 dark:text-amber-300 shrink-0">
-              S/ {project.totalPrice}
-            </span>
-          ) : null}
+          )}
         </div>
-      )}
+        {project.totalPrice ? (
+          <span className="font-bold text-amber-800 dark:text-amber-300 shrink-0">
+            S/ {project.totalPrice}
+          </span>
+        ) : (
+          <span className="text-[10px] text-stone-400 italic">
+            Sin cotizar
+          </span>
+        )}
+      </div>
 
       {/* Event description summary */}
       <div className="pt-2 text-xs">
