@@ -3,10 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from "react";
-import { X, Check, Minus, Clock, ShieldCheck, Sparkles, Tag, ChevronLeft, ChevronRight } from "lucide-react";
+import React, { useState } from "react";
+import { X, Check, Minus, Clock, ShieldCheck, Sparkles, Tag, ChevronLeft, ChevronRight, ArrowUpRight } from "lucide-react";
 import { ProjectType } from "../types";
-import { CurrencyCode, detectUserCurrency, formatCurrencyPrice } from "../utils/currency";
 import { SERVICES_CATALOG_DATA, ServiceCatalogItem, PackageItem } from "../data/servicesCatalog";
 
 export interface ServiceItem {
@@ -33,23 +32,18 @@ export default function ServicePreviewModal({
   onClose,
   onOrder
 }: ServicePreviewModalProps) {
-  const [currency, setCurrency] = useState<CurrencyCode>("PEN");
   const [selectedPkgIndex, setSelectedPkgIndex] = useState<number>(0);
-
-  useEffect(() => {
-    const { currency: detected } = detectUserCurrency();
-    setCurrency(detected);
-  }, []);
 
   const catalogItem: ServiceCatalogItem = SERVICES_CATALOG_DATA.find((s) => s.type === service.type) || SERVICES_CATALOG_DATA[0];
   const packages: PackageItem[] = catalogItem.packages || [];
   const currentPkg = packages[selectedPkgIndex] || packages[0] || {
     id: "default",
     name: "Estándar",
-    priceInPEN: 240,
+    priceInPEN: 100,
     delivery: service.deliveryTime,
     description: service.subtitle,
-    benefits: service.includes
+    benefits: service.includes,
+    upgradableFeatures: []
   };
 
   const currentPrice = currentPkg.priceInPEN;
@@ -109,45 +103,43 @@ export default function ServicePreviewModal({
               </div>
               <div className="bg-stone-900/80 backdrop-blur-xs text-amber-400 border border-amber-500/40 px-3.5 py-1.5 rounded-full font-mono text-xs font-bold flex items-center gap-1.5 shadow-md">
                 <Tag className="w-3.5 h-3.5" />
-                <span>{formatCurrencyPrice(currentPrice, currency)}</span>
+                <span>S/ {currentPrice}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Splendid details & Package Carousel */}
+        {/* RIGHT COLUMN: Splendid details & Package Selector */}
         <div className="w-full md:w-7/12 p-6 md:p-10 flex flex-col justify-between overflow-y-auto max-h-[90vh] md:max-h-[600px] lg:max-h-[700px]">
           <div className="space-y-8">
             
-            {/* PACKAGE CAROUSEL SELECTOR */}
-            {packages.length > 0 && (
+            {/* PACKAGE CAROUSEL / SELECTOR (IF MULTIPLE PACKAGES) */}
+            {packages.length > 1 ? (
               <div className="space-y-3 bg-stone-100/80 dark:bg-stone-900/80 p-4 rounded-2xl border border-stone-200 dark:border-stone-800">
                 <div className="flex items-center justify-between">
                   <span className="text-xs uppercase font-space font-bold tracking-wider text-amber-700 dark:text-amber-400">
                     Selecciona el Paquete ({selectedPkgIndex + 1}/{packages.length})
                   </span>
-                  {packages.length > 1 && (
-                    <div className="flex items-center gap-1">
-                      <button 
-                        onClick={prevPackage}
-                        className="p-1 rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-50 cursor-pointer"
-                        title="Anterior paquete"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={nextPackage}
-                        className="p-1 rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-50 cursor-pointer"
-                        title="Siguiente paquete"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1">
+                    <button 
+                      onClick={prevPackage}
+                      className="p-1 rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-50 cursor-pointer"
+                      title="Anterior paquete"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={nextPackage}
+                      className="p-1 rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-50 cursor-pointer"
+                      title="Siguiente paquete"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Package tabs / cards */}
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {packages.map((pkg, idx) => {
                     const isSelected = idx === selectedPkgIndex;
                     return (
@@ -161,7 +153,7 @@ export default function ServicePreviewModal({
                         }`}
                       >
                         <span className="text-xs block font-space uppercase tracking-wider">{pkg.name}</span>
-                        <span className="text-[11px] font-mono block opacity-90">{formatCurrencyPrice(pkg.priceInPEN, currency)}</span>
+                        <span className="text-xs font-mono block opacity-90 font-bold">S/ {pkg.priceInPEN}</span>
                       </button>
                     );
                   })}
@@ -172,8 +164,43 @@ export default function ServicePreviewModal({
                   {packages.map((_, idx) => (
                     <span 
                       key={idx} 
-                      className={`w-1.5 h-1.5 rounded-full transition-all ${idx === selectedPkgIndex ? "bg-amber-500 w-4" : "bg-stone-300 dark:bg-stone-700"}`} 
+                      className={`h-1.5 rounded-full transition-all ${idx === selectedPkgIndex ? "bg-amber-500 w-4" : "bg-stone-300 dark:bg-stone-700 w-1.5"}`} 
                     />
+                  ))}
+                </div>
+              </div>
+            ) : packages.length === 1 && (
+              <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-space font-bold tracking-wider text-amber-700 dark:text-amber-400 block">
+                    Paquete Exclusivo
+                  </span>
+                  <span className="text-sm font-serif font-bold text-stone-900 dark:text-stone-100">
+                    {packages[0].name}
+                  </span>
+                </div>
+                <span className="text-sm font-mono font-bold text-amber-700 dark:text-amber-400">
+                  S/ {packages[0].priceInPEN}
+                </span>
+              </div>
+            )}
+
+            {/* VARIANTES DEL SERVICIO SI APLICAN (EJ. SPOT PUBLICITARIO / LOCUCIÓN) */}
+            {catalogItem.variants && catalogItem.variants.length > 0 && (
+              <div className="space-y-3 bg-amber-500/5 border border-amber-500/20 p-4 rounded-2xl">
+                <span className="text-xs uppercase font-space font-bold tracking-wider text-amber-700 dark:text-amber-400 block">
+                  Formatos y Variantes Disponibles
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {catalogItem.variants.map((v) => (
+                    <div key={v.id} className="p-3 bg-white dark:bg-stone-900 border border-amber-500/30 rounded-xl space-y-1">
+                      <span className="text-xs font-serif font-bold text-stone-900 dark:text-stone-100 block">
+                        {v.label}
+                      </span>
+                      <p className="text-[11px] text-stone-600 dark:text-stone-400 leading-tight">
+                        {v.description}
+                      </p>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -188,7 +215,7 @@ export default function ServicePreviewModal({
                 </h3>
               </div>
               
-              <div className="relative border-l border-stone-200 dark:border-stone-800 ml-3.5 pl-6 space-y-5">
+              <div className="relative border-l border-stone-200 dark:border-stone-800 ml-3.5 pl-6 space-y-4">
                 {service.itinerary.map((step, idx) => (
                   <div key={idx} className="relative">
                     <div className="absolute -left-10 top-0.5 w-4 h-4 rounded-full border-2 border-amber-500 bg-[#FAF9F5] dark:bg-[#121110] flex items-center justify-center">
@@ -207,7 +234,7 @@ export default function ServicePreviewModal({
               </div>
             </div>
 
-            {/* 2. ¿QUÉ INCLUYE? & NO INCLUYE */}
+            {/* 2. ¿QUÉ INCLUYE? Y DISPONIBILIDAD */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
               <div className="space-y-3">
                 <div className="flex items-center gap-2 border-b border-stone-200/80 dark:border-stone-800 pb-2">
@@ -225,34 +252,73 @@ export default function ServicePreviewModal({
                       <span className="text-xs text-stone-800 dark:text-stone-200 leading-tight font-normal">{inc}</span>
                     </li>
                   ))}
-                  {service.includes.map((inc, index) => (
-                    <li key={`gen-${index}`} className="flex items-start gap-2">
-                      <div className="mt-0.5 p-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 shrink-0">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                      </div>
-                      <span className="text-xs text-stone-800 dark:text-stone-200 leading-tight font-normal">{inc}</span>
-                    </li>
-                  ))}
                 </ul>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 border-b border-stone-200/80 dark:border-stone-800 pb-2">
-                  <span className="w-4 h-px bg-stone-400" />
-                  <h3 className="text-xs uppercase font-space font-bold tracking-[0.2em] text-stone-400">
-                    No incluye
-                  </h3>
-                </div>
-                <ul className="space-y-2">
-                  {service.notIncludes.map((ninc, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <div className="mt-1 shrink-0 text-stone-400">
-                        <Minus className="w-3 h-3" />
-                      </div>
-                      <span className="text-xs text-stone-600 dark:text-stone-300 leading-tight font-normal">{ninc}</span>
-                    </li>
-                  ))}
-                </ul>
+              <div className="space-y-4">
+                {/* Disponible en paquetes superiores o como extra */}
+                {currentPkg.upgradableFeatures && currentPkg.upgradableFeatures.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 border-b border-stone-200/80 dark:border-stone-800 pb-2">
+                      <span className="w-4 h-px bg-amber-500/50" />
+                      <h3 className="text-xs uppercase font-space font-bold tracking-[0.15em] text-amber-700 dark:text-amber-400">
+                        En paquetes superiores o extra
+                      </h3>
+                    </div>
+                    <ul className="space-y-1.5">
+                      {currentPkg.upgradableFeatures.map((upg, index) => (
+                        <li key={index} className="flex items-start gap-2 text-stone-600 dark:text-stone-400">
+                          <ArrowUpRight className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                          <span className="text-xs leading-tight font-normal">{upg}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* No incluye (verdaderas exclusiones) */}
+                {service.notIncludes && service.notIncludes.length > 0 && (
+                  <div className="space-y-2 pt-2">
+                    <div className="flex items-center gap-2 border-b border-stone-200/80 dark:border-stone-800 pb-2">
+                      <span className="w-4 h-px bg-stone-400" />
+                      <h3 className="text-xs uppercase font-space font-bold tracking-[0.2em] text-stone-400">
+                        No incluye
+                      </h3>
+                    </div>
+                    <ul className="space-y-1.5">
+                      {service.notIncludes.map((ninc, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <div className="mt-1 shrink-0 text-stone-400">
+                            <Minus className="w-3 h-3" />
+                          </div>
+                          <span className="text-xs text-stone-500 dark:text-stone-400 leading-tight font-normal">{ninc}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Servicios bajo cotización especial (A cotizar) */}
+                {catalogItem.quotesOnlyFeatures && catalogItem.quotesOnlyFeatures.length > 0 && (
+                  <div className="space-y-2 pt-2">
+                    <div className="flex items-center gap-2 border-b border-stone-200/80 dark:border-stone-800 pb-2">
+                      <span className="w-4 h-px bg-amber-500" />
+                      <h3 className="text-xs uppercase font-space font-bold tracking-[0.2em] text-amber-700 dark:text-amber-400">
+                        Disponibles a cotizar
+                      </h3>
+                    </div>
+                    <ul className="space-y-1.5">
+                      {catalogItem.quotesOnlyFeatures.map((qf, index) => (
+                        <li key={index} className="flex items-start gap-2 text-stone-600 dark:text-stone-300">
+                          <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold shrink-0 mt-0.5">
+                            Cotizar
+                          </span>
+                          <span className="text-xs leading-tight font-normal">{qf}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -264,7 +330,7 @@ export default function ServicePreviewModal({
                   Nivel de Calidad: {service.difficulty}
                 </p>
                 <p className="text-xs text-stone-600 dark:text-stone-300 leading-normal font-normal mt-0.5">
-                  Nuestras invitaciones se programan individualmente con código limpio, garantizando carga instantánea en redes móviles y excelente desempeño.
+                  Producido individualmente por V.A.C. Creative con diseño de autor y código optimizado para alta velocidad en smartphones.
                 </p>
               </div>
             </div>
@@ -275,8 +341,8 @@ export default function ServicePreviewModal({
           <div className="pt-8 border-t border-stone-200/80 dark:border-stone-800 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-center sm:text-left">
               <span className="text-xs text-stone-500 block uppercase font-mono tracking-wider">Paquete {currentPkg.name}</span>
-              <span className="text-sm font-bold text-amber-700 dark:text-amber-400 font-mono">
-                {formatCurrencyPrice(currentPrice, currency)}
+              <span className="text-base font-bold text-amber-700 dark:text-amber-400 font-mono">
+                S/ {currentPrice}
               </span>
             </div>
 

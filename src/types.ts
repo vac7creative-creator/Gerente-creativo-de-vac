@@ -139,6 +139,10 @@ export interface Project {
   updatedAt: string;
   trackingCode?: string;
   packageId?: string;
+  packageName?: string;
+  totalPrice?: number;
+  selectedAddonIds?: string[];
+  serviceVariant?: string;
   uploadedFiles?: ProjectMediaFile[];
   googleDriveUrl?: string;
   

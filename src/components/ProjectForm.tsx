@@ -97,6 +97,7 @@ export default function ProjectForm({
   const [clientEmail, setClientEmail] = useState("");
   const [selectedType, setSelectedType] = useState<ProjectType>(initialServiceType || ProjectType.BODA);
   const [selectedPackageId, setSelectedPackageId] = useState<string>(initialPackageId || "basico");
+  const [serviceVariant, setServiceVariant] = useState<string>("");
   const [generalNotes, setGeneralNotes] = useState("");
   const [formError, setFormError] = useState("");
 
@@ -207,11 +208,18 @@ export default function ProjectForm({
   const packages: PackageItem[] = currentCatalogItem.packages || [];
   const currentPackage = packages.find((p) => p.id === selectedPackageId) || packages[0];
 
-  // When selectedType changes, reset package to first available
+  // When selectedType changes, reset package to first available and set initial variant
   useEffect(() => {
     if (currentCatalogItem.packages.length > 0) {
       setSelectedPackageId(currentCatalogItem.packages[0].id);
     }
+    if (currentCatalogItem.variants && currentCatalogItem.variants.length > 0) {
+      setServiceVariant(currentCatalogItem.variants[0].label);
+    } else {
+      setServiceVariant("");
+    }
+    const validAddonIds = currentCatalogItem.addons.map((a) => a.id);
+    setSelectedAddons((prev) => prev.filter((id) => validAddonIds.includes(id)));
   }, [selectedType]);
 
   // Load existing project block if available
@@ -224,6 +232,12 @@ export default function ProjectForm({
       setGeneralNotes(project.generalNotes || "");
       if (project.packageId) {
         setSelectedPackageId(project.packageId);
+      }
+      if (project.serviceVariant) {
+        setServiceVariant(project.serviceVariant);
+      }
+      if (project.selectedAddonIds && project.selectedAddonIds.length > 0) {
+        setSelectedAddons(project.selectedAddonIds);
       }
       if (project.uploadedFiles) {
         setUploadedFiles(project.uploadedFiles);
@@ -285,14 +299,14 @@ export default function ProjectForm({
     }
   }, [project]);
 
-  // Calculate total price
-  const basePrice = currentPackage ? currentPackage.priceInPEN : currentCatalogItem.packages[0]?.priceInPEN || 240;
+  // Calculate total price: DO NOT double charge if included in package!
+  const basePrice = currentPackage ? currentPackage.priceInPEN : currentCatalogItem.packages[0]?.priceInPEN || 100;
   const addonsTotal = selectedAddons.reduce((sum, addId) => {
+    if (currentPackage?.includedFeatureIds.includes(addId)) return sum;
     const addon = currentCatalogItem.addons.find((a) => a.id === addId);
     return sum + (addon ? addon.priceInPEN : 0);
   }, 0);
   const totalPricePEN = basePrice + addonsTotal;
-  const totalPriceConverted = formatCurrencyPrice(totalPricePEN, currency);
 
   // Add menu item helper
   const handleAddMenuItem = () => {
@@ -462,6 +476,10 @@ export default function ProjectForm({
       createdAt: project?.createdAt || now,
       updatedAt: now,
       packageId: currentPackage?.id || selectedPackageId,
+      packageName: currentPackage?.name || "Básico",
+      totalPrice: totalPricePEN,
+      selectedAddonIds: selectedAddons,
+      serviceVariant: serviceVariant || undefined,
       uploadedFiles: uploadedFiles,
       googleDriveUrl: googleDriveUrl,
       weddingDetails: weddingDetailsObj,
@@ -547,11 +565,73 @@ export default function ProjectForm({
                   >
                     {packages.map((pkg) => (
                       <option key={pkg.id} value={pkg.id}>
-                        {pkg.name} — {formatCurrencyPrice(pkg.priceInPEN, currency)}
+                        {pkg.name} — S/ {pkg.priceInPEN} ({pkg.delivery})
                       </option>
                     ))}
                   </select>
                 </div>
+
+                {/* Variantes del servicio si aplican (ej. Spot Publicitario / Locución) */}
+                {currentCatalogItem.variants && currentCatalogItem.variants.length > 0 && (
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="text-xs font-space font-bold uppercase text-stone-700 dark:text-stone-300">
+                      Variante o Formato de Servicio
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      {currentCatalogItem.variants.map((v) => {
+                        const isSelected = serviceVariant === v.label;
+                        return (
+                          <button
+                            key={v.id}
+                            type="button"
+                            onClick={() => setServiceVariant(v.label)}
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                              isSelected
+                                ? "bg-amber-500 text-stone-950 border-amber-500 font-bold shadow-sm"
+                                : "bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300 hover:border-amber-400"
+                            }`}
+                          >
+                            <span className="text-xs block font-serif font-bold">{v.label}</span>
+                            <span className={`text-[11px] block mt-1 leading-tight font-normal ${isSelected ? "text-stone-900" : "text-stone-500 dark:text-stone-400"}`}>
+                              {v.description}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Resumen del paquete actual */}
+                <div className="sm:col-span-2 p-3.5 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-space font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                      Alcance del Paquete {currentPackage?.name}
+                    </span>
+                    <span className="font-mono text-stone-500">
+                      Entrega: {currentPackage?.delivery}
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-600 dark:text-stone-300 font-normal">
+                    {currentPackage?.description}
+                  </p>
+                </div>
+
+                {/* Servicios bajo cotización especial si aplican */}
+                {currentCatalogItem.quotesOnlyFeatures && currentCatalogItem.quotesOnlyFeatures.length > 0 && (
+                  <div className="sm:col-span-2 p-3 bg-stone-100/60 dark:bg-stone-900/40 border border-stone-200 dark:border-stone-800 rounded-xl space-y-1">
+                    <span className="text-[10px] uppercase font-space font-bold text-amber-700 dark:text-amber-400 block">
+                      Servicios Especiales Disponibles (A cotizar):
+                    </span>
+                    <div className="flex flex-wrap gap-2 pt-0.5">
+                      {currentCatalogItem.quotesOnlyFeatures.map((qf, i) => (
+                        <span key={i} className="text-[11px] bg-white dark:bg-stone-800 px-2.5 py-1 rounded-lg border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 font-normal">
+                          • {qf}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1618,7 +1698,7 @@ export default function ProjectForm({
                           ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase text-[10px]"
                           : "text-amber-700 dark:text-amber-400"
                       }`}>
-                        {isIncludedInPackage ? "Incluido en tu paquete" : `+ ${formatCurrencyPrice(addon.priceInPEN, currency)}`}
+                        {isIncludedInPackage ? "Incluido en tu paquete" : `+ S/ ${addon.priceInPEN}`}
                       </span>
                     </div>
                   );
@@ -1655,6 +1735,11 @@ export default function ProjectForm({
                 <h4 className="font-serif font-bold text-xl text-stone-900 dark:text-stone-50">
                   {currentCatalogItem.title}
                 </h4>
+                {serviceVariant && (
+                  <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+                    Variante: <strong className="text-stone-900 dark:text-stone-100">{serviceVariant}</strong>
+                  </p>
+                )}
                 <p className="text-xs text-stone-600 dark:text-stone-300 font-normal">
                   Paquete: <strong className="text-stone-900 dark:text-stone-100">{currentPackage?.name}</strong>
                 </p>
@@ -1667,22 +1752,24 @@ export default function ProjectForm({
               <div className="space-y-2.5 text-xs">
                 <div className="flex items-center justify-between text-stone-700 dark:text-stone-300">
                   <span>Precio Base ({currentPackage?.name})</span>
-                  <span className="font-mono font-semibold">{formatCurrencyPrice(basePrice, currency)}</span>
+                  <span className="font-mono font-semibold">S/ {basePrice}</span>
                 </div>
 
-                {selectedAddons.length > 0 && (
+                {selectedAddons.filter(id => !currentPackage?.includedFeatureIds.includes(id)).length > 0 && (
                   <div className="space-y-1.5 pt-2 border-t border-stone-200 dark:border-stone-800">
                     <span className="text-[11px] font-bold text-stone-500 uppercase font-space">Extras Seleccionados</span>
-                    {selectedAddons.map((addId) => {
-                      const addObj = currentCatalogItem.addons.find((a) => a.id === addId);
-                      if (!addObj) return null;
-                      return (
-                        <div key={addId} className="flex items-center justify-between text-stone-600 dark:text-stone-300 text-xs">
-                          <span className="truncate pr-2">• {addObj.label}</span>
-                          <span className="font-mono">+ {formatCurrencyPrice(addObj.priceInPEN, currency)}</span>
-                        </div>
-                      );
-                    })}
+                    {selectedAddons
+                      .filter(id => !currentPackage?.includedFeatureIds.includes(id))
+                      .map((addId) => {
+                        const addObj = currentCatalogItem.addons.find((a) => a.id === addId);
+                        if (!addObj) return null;
+                        return (
+                          <div key={addId} className="flex items-center justify-between text-stone-600 dark:text-stone-300 text-xs">
+                            <span className="truncate pr-2">• {addObj.label}</span>
+                            <span className="font-mono font-medium">+ S/ {addObj.priceInPEN}</span>
+                          </div>
+                        );
+                      })}
                   </div>
                 )}
               </div>
@@ -1694,7 +1781,7 @@ export default function ProjectForm({
                 </div>
                 <div className="text-right">
                   <span className="font-serif font-bold text-2xl text-stone-950 dark:text-stone-50">
-                    {totalPriceConverted}
+                    S/ {totalPricePEN}
                   </span>
                 </div>
               </div>

@@ -41,7 +41,11 @@ export default function ProjectSummary({
     header += `*Cliente:* ${clientName}\n`;
     header += `*Teléfono:* ${clientPhone}\n`;
     header += `*Email:* ${clientEmail}\n`;
-    header += `*Servicio:* ${type}\n\n`;
+    header += `*Servicio:* ${type}\n`;
+    if (project.packageName) header += `*Paquete:* ${project.packageName}\n`;
+    if (project.serviceVariant) header += `*Variante:* ${project.serviceVariant}\n`;
+    if (project.totalPrice) header += `*Inversión Total:* S/ ${project.totalPrice}\n`;
+    header += `\n`;
 
     let details = "";
     if (type === ProjectType.BODA && project.weddingDetails) {
@@ -218,6 +222,23 @@ export default function ProjectSummary({
               <h3 className="text-xl font-bold font-space text-zinc-900 dark:text-white mt-1">
                 {project.type}
               </h3>
+              {(project.packageName || project.packageId || project.totalPrice) && (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs font-bold font-space px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                    Paquete: {project.packageName || (project.packageId ? project.packageId.toUpperCase() : "Estándar")}
+                  </span>
+                  {project.serviceVariant && (
+                    <span className="text-xs text-zinc-500">
+                      • {project.serviceVariant}
+                    </span>
+                  )}
+                  {project.totalPrice && (
+                    <span className="text-xs font-mono font-bold text-zinc-900 dark:text-zinc-100">
+                      • Inversión: S/ {project.totalPrice}
+                    </span>
+                  )}
+                </div>
+              )}
               <p className="text-xs text-zinc-500 mt-1 uppercase font-mono">
                 Orden ID: {project.id} • Creada el {new Date(project.createdAt).toLocaleDateString()}
               </p>
@@ -478,7 +499,7 @@ export default function ProjectSummary({
                           </div>
                           
                           <div className="text-right shrink-0">
-                            <span className="text-sm font-black text-amber-600 dark:text-amber-400 font-mono">${item.price} MXN</span>
+                            <span className="text-sm font-black text-amber-600 dark:text-amber-400 font-mono">S/ {item.price}</span>
                           </div>
                         </div>
                       ))

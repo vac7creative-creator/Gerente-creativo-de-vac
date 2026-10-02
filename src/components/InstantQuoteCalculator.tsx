@@ -12,95 +12,61 @@ import {
   ArrowRight, 
   Clock, 
   ShieldCheck, 
-  HelpCircle,
   Smartphone,
   Music,
   Camera,
   QrCode,
-  Zap,
-  MapPin
+  Zap
 } from "lucide-react";
 import { ProjectType } from "../types";
-import CurrencySelector, { 
-  ActiveCurrency, 
-  convertPrice, 
-  formatCurrency, 
-  CURRENCY_OPTIONS 
-} from "./CurrencySelector";
 import { SERVICES_CATALOG_DATA, ServiceCatalogItem, PackageItem } from "../data/servicesCatalog";
 
 interface InstantQuoteCalculatorProps {
   onSelectServiceAndStartOrder: (type: ProjectType, prefilledNotes?: string, packageId?: string) => void;
 }
 
-const STORAGE_CURRENCY_KEY = "vac_cotizador_currency";
-
 export default function InstantQuoteCalculator({
   onSelectServiceAndStartOrder
 }: InstantQuoteCalculatorProps) {
   const [selectedType, setSelectedType] = useState<ProjectType>(ProjectType.BODA);
   const [selectedPackageId, setSelectedPackageId] = useState<string>("basico");
+  const [selectedVariantId, setSelectedVariantId] = useState<string>("");
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
-  const [currency, setCurrency] = useState<ActiveCurrency>("PEN");
-  const [detectionOrigin, setDetectionOrigin] = useState<string>("");
 
   const currentCatalogItem: ServiceCatalogItem = SERVICES_CATALOG_DATA.find((s) => s.type === selectedType) || SERVICES_CATALOG_DATA[0];
   const packages: PackageItem[] = currentCatalogItem.packages || [];
   const currentPackage = packages.find((p) => p.id === selectedPackageId) || packages[0];
+  const variants = currentCatalogItem.variants || [];
+  const currentVariant = variants.find((v) => v.id === selectedVariantId) || variants[0];
 
-  // Detect region on mount or load saved preference
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_CURRENCY_KEY);
-    if (saved === "PEN" || saved === "USD") {
-      setCurrency(saved as ActiveCurrency);
-      setDetectionOrigin("preferencia guardada");
-      return;
-    }
-
-    try {
-      const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone || "").toLowerCase();
-      const languages = (navigator.languages || [navigator.language || ""]).map((l) => l.toLowerCase());
-      
-      if (tz.includes("lima") || languages.some((l) => l.includes("pe"))) {
-        setCurrency("PEN");
-        setDetectionOrigin("Perú (Soles)");
-      } else {
-        setCurrency("USD");
-        setDetectionOrigin("Internacional (USD)");
-      }
-    } catch {
-      setCurrency("PEN");
-    }
-  }, []);
-
-  // When selectedType changes, reset package to first available and filter addons
+  // When selectedType changes, reset package to first available and filter incompatible addons
   useEffect(() => {
     if (currentCatalogItem.packages.length > 0) {
       setSelectedPackageId(currentCatalogItem.packages[0].id);
+    }
+    if (currentCatalogItem.variants && currentCatalogItem.variants.length > 0) {
+      setSelectedVariantId(currentCatalogItem.variants[0].id);
+    } else {
+      setSelectedVariantId("");
     }
     const validAddonIds = currentCatalogItem.addons.map((a) => a.id);
     setSelectedAddons((prev) => prev.filter((id) => validAddonIds.includes(id)));
   }, [selectedType]);
 
-  const handleCurrencyChange = (newCurrency: ActiveCurrency) => {
-    setCurrency(newCurrency);
-    localStorage.setItem(STORAGE_CURRENCY_KEY, newCurrency);
-    setDetectionOrigin("");
-  };
+  const basePricePEN = currentPackage ? currentPackage.priceInPEN : currentCatalogItem.packages[0]?.priceInPEN || 100;
 
-  const basePricePEN = currentPackage ? currentPackage.priceInPEN : currentCatalogItem.packages[0]?.priceInPEN || 240;
-  const currentBasePrice = convertPrice(basePricePEN, currency);
-
-  const addonsTotalInCurrency = selectedAddons.reduce((sum, id) => {
+  // Calculate extras: DO NOT double charge if included in package!
+  const addonsTotalPEN = selectedAddons.reduce((sum, id) => {
+    const isIncluded = currentPackage?.includedFeatureIds.includes(id);
+    if (isIncluded) return sum; // S/ 0 extra
     const addon = currentCatalogItem.addons.find((a) => a.id === id);
-    return sum + (addon ? convertPrice(addon.priceInPEN, currency) : 0);
+    return sum + (addon ? addon.priceInPEN : 0);
   }, 0);
 
-  const displayedTotalPrice = currentBasePrice + addonsTotalInCurrency;
-  const currencyMeta = CURRENCY_OPTIONS[currency];
+  const displayedTotalPrice = basePricePEN + addonsTotalPEN;
 
   const toggleAddon = (id: string) => {
-    if (currentPackage?.includedFeatureIds.includes(id)) return; // Included in package
+    if (currentPackage?.includedFeatureIds.includes(id)) return; // Already included
     if (selectedAddons.includes(id)) {
       setSelectedAddons(selectedAddons.filter((item) => item !== id));
     } else {
@@ -109,26 +75,27 @@ export default function InstantQuoteCalculator({
   };
 
   const handleStartOrder = () => {
-    const addonNames = selectedAddons
+    const validPaidAddonNames = selectedAddons
+      .filter((id) => !currentPackage?.includedFeatureIds.includes(id))
       .map((id) => currentCatalogItem.addons.find((a) => a.id === id)?.label)
       .filter(Boolean)
       .join(", ");
 
-    const formattedAmount = formatCurrency(displayedTotalPrice, currency);
-    const notes = `Cotización en V.A.C. Creative: ${currentCatalogItem.title} (${currentPackage?.name}). Inversión estimada: ${formattedAmount}. Extras incluidos: ${addonNames || "Ninguno"}.`;
+    const variantText = currentVariant ? ` [Variante: ${currentVariant.label}]` : "";
+    const notes = `Cotización en V.A.C. Creative: ${currentCatalogItem.title}${variantText} (Paquete: ${currentPackage?.name}). Inversión: S/ ${displayedTotalPrice}. Extras adicionales: ${validPaidAddonNames || "Ninguno"}.`;
     onSelectServiceAndStartOrder(selectedType, notes, currentPackage?.id);
   };
 
   const handleContactWhatsApp = () => {
-    const addonNames = selectedAddons
+    const validPaidAddonNames = selectedAddons
+      .filter((id) => !currentPackage?.includedFeatureIds.includes(id))
       .map((id) => currentCatalogItem.addons.find((a) => a.id === id)?.label)
       .filter(Boolean)
       .join(", ");
 
-    const formattedAmount = formatCurrency(displayedTotalPrice, currency);
-
+    const variantText = currentVariant ? ` [Variante: ${currentVariant.label}]` : "";
     const message = encodeURIComponent(
-      `¡Hola V.A.C. Creative! 👋 Deseo cotizar el servicio de *${currentCatalogItem.title}* (${currentPackage?.name}) con un estimado de *${formattedAmount}*.\n\n*Extras elegidos:* ${addonNames || "Ninguno"}.\n*Tiempo estimado de entrega:* ${currentPackage?.delivery || currentCatalogItem.deliveryTime}.\n*Moneda elegida:* ${currencyMeta.name} (${currencyMeta.symbol} ${currency}).\n\n¿Podrían asesorarme para iniciar mi pedido?`
+      `¡Hola V.A.C. Creative! 👋 Deseo cotizar *${currentCatalogItem.title}*${variantText} en el paquete *${currentPackage?.name}* con un estimado de *S/ ${displayedTotalPrice}*.\n\n*Extras elegidos:* ${validPaidAddonNames || "Paquete base"}.\n*Tiempo estimado de entrega:* ${currentPackage?.delivery || currentCatalogItem.deliveryTime}.\n\n¿Podrían brindarme asesoría para iniciar mi proyecto?`
     );
     window.open(`https://wa.me/525512345678?text=${message}`, "_blank", "noopener,noreferrer");
   };
@@ -136,34 +103,22 @@ export default function InstantQuoteCalculator({
   return (
     <div className="bg-white dark:bg-[#141311] border border-stone-200/80 dark:border-stone-800 rounded-3xl p-6 sm:p-10 shadow-sm space-y-8 animate-fade-in">
       
-      {/* Title & Currency Selector Header */}
+      {/* Title Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-stone-200/60 dark:border-stone-800">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-space font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400">
               Cotizador Inteligente · V.A.C. Creative
             </span>
-            {detectionOrigin && (
-              <span className="inline-flex items-center gap-1 text-xs font-mono px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                <MapPin className="w-3.5 h-3.5" />
-                <span>Región: {detectionOrigin}</span>
-              </span>
-            )}
           </div>
 
           <h3 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 dark:text-stone-50 tracking-tight">
             Calcula la Inversión de tu Proyecto
           </h3>
           <p className="text-sm text-stone-600 dark:text-stone-300 font-normal">
-            Alterna entre Soles (S/) y Dólares ($) con conversión instantánea para todo el catálogo.
+            Tarifas oficiales en Soles peruanos (S/) según el nivel de paquete y extras que necesites.
           </p>
         </div>
-
-        {/* Dedicated Currency Selector Component (Soles / Dólares) */}
-        <CurrencySelector
-          currency={currency}
-          onChange={handleCurrencyChange}
-        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -178,15 +133,14 @@ export default function InstantQuoteCalculator({
                 1. Selecciona el Tipo de Proyecto
               </label>
               <span className="text-xs font-mono text-stone-500 dark:text-stone-400">
-                Precios en {currencyMeta.symbol} {currency}
+                Precios en Soles (S/)
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {SERVICES_CATALOG_DATA.map((service) => {
                 const isSelected = service.type === selectedType;
-                const startingPkgPrice = service.packages[0]?.priceInPEN || 240;
-                const convertedPrice = convertPrice(startingPkgPrice, currency);
+                const startingPrice = service.packages[0]?.priceInPEN || 100;
 
                 return (
                   <button
@@ -221,7 +175,7 @@ export default function InstantQuoteCalculator({
                         {service.deliveryTime}
                       </span>
                       <span className="font-bold text-stone-900 dark:text-stone-100">
-                        Desde {formatCurrency(convertedPrice, currency)}
+                        Desde S/ {startingPrice}
                       </span>
                     </div>
                   </button>
@@ -230,7 +184,38 @@ export default function InstantQuoteCalculator({
             </div>
           </div>
 
-          {/* 1.5. SELECCIÓN DE PAQUETE */}
+          {/* 1B. SELECCIÓN DE VARIANTE (SI APLICA, EJ. SPOT / LOCUCIÓN) */}
+          {variants.length > 0 && (
+            <div className="space-y-3 p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl">
+              <label className="text-xs font-bold font-space uppercase tracking-wider text-amber-700 dark:text-amber-400 block">
+                Formato o Variante del Servicio
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {variants.map((v) => {
+                  const isSelected = v.id === (currentVariant?.id || variants[0].id);
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => setSelectedVariantId(v.id)}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-amber-500 text-stone-950 border-amber-500 font-bold shadow-sm"
+                          : "bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300 hover:border-amber-400"
+                      }`}
+                    >
+                      <span className="text-xs block font-serif font-bold">{v.label}</span>
+                      <span className={`text-[11px] block mt-1 leading-tight font-normal ${isSelected ? "text-stone-900" : "text-stone-500 dark:text-stone-400"}`}>
+                        {v.description}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 2. SELECCIÓN DE PAQUETE */}
           {packages.length > 0 && (
             <div className="space-y-3">
               <label className="text-xs font-bold font-space uppercase tracking-wider text-amber-700 dark:text-amber-400 block">
@@ -239,13 +224,12 @@ export default function InstantQuoteCalculator({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {packages.map((pkg) => {
                   const isSelected = pkg.id === selectedPackageId;
-                  const pkgPriceConverted = convertPrice(pkg.priceInPEN, currency);
                   return (
                     <button
                       key={pkg.id}
                       type="button"
                       onClick={() => setSelectedPackageId(pkg.id)}
-                      className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer space-y-1 ${
+                      className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer space-y-1.5 ${
                         isSelected
                           ? "border-amber-500 bg-amber-500/10 shadow-sm font-bold"
                           : "border-stone-200 dark:border-stone-800 bg-stone-50/40 dark:bg-stone-900/40 hover:border-stone-300"
@@ -255,8 +239,8 @@ export default function InstantQuoteCalculator({
                         <span className="text-xs font-space uppercase tracking-wider">{pkg.name}</span>
                         {isSelected && <Check className="w-3.5 h-3.5 text-amber-600" />}
                       </div>
-                      <span className="text-sm font-mono font-bold block text-stone-900 dark:text-stone-100">
-                        {formatCurrency(pkgPriceConverted, currency)}
+                      <span className="text-base font-mono font-bold block text-stone-900 dark:text-stone-100">
+                        S/ {pkg.priceInPEN}
                       </span>
                       <p className="text-[11px] text-stone-500 font-normal">{pkg.delivery}</p>
                     </button>
@@ -266,7 +250,7 @@ export default function InstantQuoteCalculator({
             </div>
           )}
 
-          {/* 2. EXTRAS ESPECÍFICOS DEL SERVICIO */}
+          {/* 3. EXTRAS ESPECÍFICOS DEL SERVICIO */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold font-space uppercase tracking-wider text-amber-700 dark:text-amber-400 block">
@@ -281,7 +265,6 @@ export default function InstantQuoteCalculator({
               {currentCatalogItem.addons.map((addon) => {
                 const isIncluded = currentPackage?.includedFeatureIds.includes(addon.id);
                 const isChecked = isIncluded || selectedAddons.includes(addon.id);
-                const addonPriceFormatted = formatCurrency(convertPrice(addon.priceInPEN, currency), currency);
 
                 return (
                   <div
@@ -318,13 +301,38 @@ export default function InstantQuoteCalculator({
                         ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase text-[10px]"
                         : "text-amber-700 dark:text-amber-400"
                     }`}>
-                      {isIncluded ? "Incluido" : `+ ${addonPriceFormatted}`}
+                      {isIncluded ? "Incluido" : `+ S/ ${addon.priceInPEN}`}
                     </span>
                   </div>
                 );
               })}
             </div>
           </div>
+
+          {/* 4. SERVICIOS BAJO COTIZACIÓN ESPECIAL (A COTIZAR) */}
+          {currentCatalogItem.quotesOnlyFeatures && currentCatalogItem.quotesOnlyFeatures.length > 0 && (
+            <div className="space-y-3 p-4 bg-stone-100/60 dark:bg-stone-900/40 rounded-2xl border border-stone-200 dark:border-stone-800">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold font-space uppercase tracking-wider text-stone-600 dark:text-stone-300 block">
+                  Servicios Adicionales (A Cotizar)
+                </label>
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold">
+                  Bajo Pedido
+                </span>
+              </div>
+              <ul className="space-y-2">
+                {currentCatalogItem.quotesOnlyFeatures.map((qf, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-xs text-stone-600 dark:text-stone-300 font-normal">
+                    <span className="text-amber-600 dark:text-amber-400 font-bold shrink-0 mt-0.5">•</span>
+                    <span>{qf}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[11px] text-stone-500 italic pt-1">
+                Puedes indicar estos requerimientos especiales en las notas del formulario o consultarnos por WhatsApp.
+              </p>
+            </div>
+          )}
 
         </div>
 
@@ -339,6 +347,11 @@ export default function InstantQuoteCalculator({
               <h4 className="font-serif font-bold text-2xl text-stone-900 dark:text-stone-50">
                 {currentCatalogItem.title}
               </h4>
+              {currentVariant && (
+                <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+                  Variante: <strong className="text-stone-900 dark:text-stone-100">{currentVariant.label}</strong>
+                </p>
+              )}
               <p className="text-xs text-stone-600 dark:text-stone-300 font-normal">
                 Paquete: <strong className="text-stone-900 dark:text-stone-100">{currentPackage?.name}</strong> · Entrega: <strong className="text-stone-900 dark:text-stone-100">{currentPackage?.delivery || currentCatalogItem.deliveryTime}</strong>
               </p>
@@ -348,25 +361,26 @@ export default function InstantQuoteCalculator({
             <div className="space-y-3 text-xs">
               <div className="flex items-center justify-between text-stone-700 dark:text-stone-300">
                 <span>Precio Base ({currentPackage?.name})</span>
-                <span className="font-mono font-semibold">{formatCurrency(currentBasePrice, currency)}</span>
+                <span className="font-mono font-semibold">S/ {basePricePEN}</span>
               </div>
 
-              {selectedAddons.length > 0 && (
+              {selectedAddons.filter(id => !currentPackage?.includedFeatureIds.includes(id)).length > 0 && (
                 <div className="space-y-2 pt-2 border-t border-stone-200/60 dark:border-stone-800/60">
                   <span className="text-xs font-bold text-stone-600 dark:text-stone-400 block uppercase font-space">
-                    Extras Seleccionados ({selectedAddons.length})
+                    Extras Seleccionados
                   </span>
-                  {selectedAddons.map((id) => {
-                    const addon = currentCatalogItem.addons.find((a) => a.id === id);
-                    if (!addon) return null;
-                    const addonCost = convertPrice(addon.priceInPEN, currency);
-                    return (
-                      <div key={id} className="flex items-center justify-between text-stone-600 dark:text-stone-300 text-xs">
-                        <span className="truncate pr-2">• {addon.label}</span>
-                        <span className="font-mono shrink-0">+ {formatCurrency(addonCost, currency)}</span>
-                      </div>
-                    );
-                  })}
+                  {selectedAddons
+                    .filter(id => !currentPackage?.includedFeatureIds.includes(id))
+                    .map((id) => {
+                      const addon = currentCatalogItem.addons.find((a) => a.id === id);
+                      if (!addon) return null;
+                      return (
+                        <div key={id} className="flex items-center justify-between text-stone-600 dark:text-stone-300 text-xs">
+                          <span className="truncate pr-2">• {addon.label}</span>
+                          <span className="font-mono shrink-0">+ S/ {addon.priceInPEN}</span>
+                        </div>
+                      );
+                    })}
                 </div>
               )}
             </div>
@@ -378,15 +392,12 @@ export default function InstantQuoteCalculator({
                   Inversión Total Estimada
                 </span>
                 <span className="text-xs text-stone-400 font-light">
-                  Impuestos incluidos
+                  Tarifa neta en Soles
                 </span>
               </div>
               <div className="text-right">
                 <span className="font-serif font-bold text-3xl sm:text-4xl text-stone-950 dark:text-stone-50">
-                  {formatCurrency(displayedTotalPrice, currency)}
-                </span>
-                <span className="text-xs font-mono text-amber-700 dark:text-amber-400 block font-bold">
-                  {currencyMeta.symbol} {currency}
+                  S/ {displayedTotalPrice}
                 </span>
               </div>
             </div>

@@ -133,6 +133,27 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         </div>
       )}
 
+      {/* Commercial Package and Price Badge */}
+      {(project.packageName || project.packageId || project.totalPrice) && (
+        <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl text-xs font-mono">
+          <div className="flex items-center gap-1.5 truncate pr-2">
+            <span className="text-[10px] uppercase font-space font-bold text-amber-700 dark:text-amber-400">
+              Paquete {project.packageName || (project.packageId ? project.packageId.toUpperCase() : "Estándar")}
+            </span>
+            {project.serviceVariant && (
+              <span className="text-[10px] text-stone-500 dark:text-stone-400 truncate">
+                · {project.serviceVariant}
+              </span>
+            )}
+          </div>
+          {project.totalPrice ? (
+            <span className="font-bold text-amber-800 dark:text-amber-300 shrink-0">
+              S/ {project.totalPrice}
+            </span>
+          ) : null}
+        </div>
+      )}
+
       {/* Event description summary */}
       <div className="pt-2 text-xs">
         {project.type === ProjectType.BODA && project.weddingDetails && (

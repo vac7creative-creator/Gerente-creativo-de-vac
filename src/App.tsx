@@ -40,7 +40,7 @@ import InstantQuoteCalculator from "./components/InstantQuoteCalculator";
 import AdminLoginModal from "./components/AdminLoginModal";
 
 // Data
-import { SERVICES_CATALOG, MAIN_CATEGORIES } from "./data/servicesCatalog";
+import { SERVICES_CATALOG, MAIN_CATEGORIES, SERVICES_CATALOG_DATA } from "./data/servicesCatalog";
 
 // Icons
 import { 
@@ -712,10 +712,10 @@ export default function App() {
                         </p>
 
                         <div className="pt-4 border-t border-stone-100 dark:border-stone-800/80 flex items-center justify-between text-xs font-space">
-                          <span className="text-stone-400 dark:text-stone-500 text-[11px]">
-                            {service.includes.length} prestaciones incluidas
+                          <span className="text-amber-700 dark:text-amber-400 font-bold font-mono">
+                            Desde S/ {SERVICES_CATALOG_DATA.find(s => s.type === service.type)?.packages[0]?.priceInPEN || 100}
                           </span>
-                          <span className="text-amber-700 dark:text-amber-400 font-bold uppercase tracking-wider group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                          <span className="text-stone-700 dark:text-stone-300 font-bold uppercase tracking-wider group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
                             Ver Ficha →
                           </span>
                         </div>
@@ -763,8 +763,10 @@ export default function App() {
                       </div>
 
                       <div className="pt-4 border-t border-stone-100 dark:border-stone-800/80 flex items-center justify-between text-xs font-space font-medium text-stone-500 dark:text-stone-400">
-                        <span>{cat.deliveryTime}</span>
-                        <span className="text-amber-700 dark:text-amber-400 group-hover:translate-x-1 transition-transform">
+                        <span className="font-mono font-bold text-amber-700 dark:text-amber-400">
+                          Desde S/ {SERVICES_CATALOG_DATA.find(s => s.type === cat.type)?.packages[0]?.priceInPEN || 100}
+                        </span>
+                        <span className="text-stone-700 dark:text-stone-300 font-bold group-hover:translate-x-1 transition-transform">
                           Detalles →
                         </span>
                       </div>
