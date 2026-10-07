@@ -33,6 +33,26 @@
           "type": "string",
           "description": "Código privado de seguimiento VAC-XXXX..."
         },
+        "driveFolderId": {
+          "type": "string",
+          "description": "ID de la carpeta del proyecto en Google Drive"
+        },
+        "driveFolderUrl": {
+          "type": "string",
+          "description": "Enlace web directo a la carpeta en Google Drive"
+        },
+        "driveUploadsFolderId": {
+          "type": "string",
+          "description": "ID de la subcarpeta de archivos del cliente en Google Drive"
+        },
+        "driveReferencesFolderId": {
+          "type": "string",
+          "description": "ID de la subcarpeta de referencias en Google Drive"
+        },
+        "driveFinalFilesFolderId": {
+          "type": "string",
+          "description": "ID de la subcarpeta de entregables finales en Google Drive"
+        },
         "createdAt": {
           "type": "string",
           "description": "Fecha de creación"

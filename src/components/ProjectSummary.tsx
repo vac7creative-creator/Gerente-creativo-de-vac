@@ -18,7 +18,8 @@ import {
   Palette,
   Briefcase,
   CheckCircle,
-  ExternalLink
+  ExternalLink,
+  Folder
 } from "lucide-react";
 
 interface ProjectSummaryProps {
@@ -270,6 +271,28 @@ export default function ProjectSummary({
               </div>
             </div>
           </div>
+
+          {/* Google Drive Folder Banner (if available) */}
+          {project.driveFolderUrl && (
+            <div className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
+                <Folder className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <div>
+                  <span className="text-xs font-bold font-space uppercase block">Carpeta de Google Drive</span>
+                  <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-mono">Archivos, referencias y entregables vinculados</span>
+                </div>
+              </div>
+              <a
+                href={project.driveFolderUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold font-space uppercase inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              >
+                <span>Abrir Carpeta</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
 
           {/* Dynamic Details block */}
           <div className="mt-8">

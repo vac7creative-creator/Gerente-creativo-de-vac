@@ -19,6 +19,7 @@ import {
   auth,
   db,
   createPublicOrderWithTracking,
+  createDriveFolderForExistingProject,
   getPublicTrackingByCode,
   updateProjectAndTracking,
   deleteProjectAndTracking,
@@ -308,12 +309,41 @@ export default function App() {
         setProjects(newList);
         showToast(index >= 0 ? "Proyecto y tracking actualizados" : "¡Nuevo proyecto guardado!");
       } else {
-        const assignedCode = await createPublicOrderWithTracking(updatedProj);
+        const orderResult = await createPublicOrderWithTracking(updatedProj);
+        const assignedCode = typeof orderResult === "string" ? orderResult : orderResult.trackingCode;
         setNewlyCreatedCodeModal(assignedCode);
+        if (orderResult && typeof orderResult === "object") {
+          if (orderResult.driveError) {
+            showToast("Tu pedido fue registrado correctamente. La carpeta de archivos se terminará de preparar automáticamente.", "info");
+          } else if (orderResult.driveFolderUrl) {
+            showToast("¡Pedido y carpeta de Google Drive vinculados con éxito!");
+          }
+        }
       }
     } catch (err) {
       console.warn("Error saving project:", err);
       showToast("Error al registrar la solicitud. Verifica tu conexión.", "info");
+    }
+  };
+
+  // Admin: Manually create Drive folder for existing project
+  const handleCreateDriveFolderForProject = async (proj: Project) => {
+    if (!isAdminAuthenticated) return;
+    try {
+      showToast("Conectando con Google Drive...", "info");
+      const res = await createDriveFolderForExistingProject(proj);
+      if (res.ok && res.folderUrl) {
+        showToast("¡Carpeta de Google Drive vinculada con éxito!");
+        const updated = {
+          ...proj,
+          driveFolderUrl: res.folderUrl
+        };
+        setProjects(prev => prev.map(p => p.id === proj.id ? updated : p));
+      } else {
+        showToast(res.error || "No se pudo crear la carpeta en Google Drive.", "info");
+      }
+    } catch {
+      showToast("Error al conectar con Google Drive.", "info");
     }
   };
 
@@ -1345,6 +1375,7 @@ export default function App() {
                       onViewSummary={(proj) => setActiveSummaryProject(proj)}
                       onGeneratePrompts={(proj) => setActivePromptProject(proj)}
                       onStatusChange={handleStatusChange}
+                      onCreateDriveFolder={handleCreateDriveFolderForProject}
                     />
                   ))}
                 </div>

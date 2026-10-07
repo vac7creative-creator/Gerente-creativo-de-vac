@@ -25,6 +25,7 @@ import {
 } from "firebase/firestore";
 import firebaseConfig from "../firebase-applet-config.json";
 import { Project, ProjectStatus } from "./types";
+import { createOrGetDriveFolderForProject, DriveFolderResult } from "./services/driveService";
 
 // 1. Initialize Firebase App and Firestore
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
@@ -348,18 +349,46 @@ export function isValidTrackingCodeFormat(code: string): boolean {
   return regex.test(code);
 }
 
-export async function createPublicOrderWithTracking(project: Project): Promise<string> {
+export async function createPublicOrderWithTracking(project: Project): Promise<{ trackingCode: string; driveFolderUrl?: string; driveError?: boolean }> {
   const projectId = project.id || (typeof crypto !== "undefined" && crypto.randomUUID ? `proj_${crypto.randomUUID()}` : `proj_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`);
   const trackingCode = project.trackingCode || generateTrackingCode();
   const now = new Date().toISOString();
 
+  // 1. Intentar creación segura de carpeta en Google Drive usando el trackingCode idéntico
+  let driveResult: DriveFolderResult | null = null;
+  if (!project.driveFolderId) {
+    try {
+      driveResult = await createOrGetDriveFolderForProject({
+        ...project,
+        id: projectId,
+        trackingCode
+      });
+    } catch (driveErr) {
+      console.warn("Integración con Drive diferida o inaccesible temporalmente:", driveErr);
+    }
+  }
+
+  // 2. Componer el proyecto con los datos de Drive si estuvieron disponibles
   const projectData: Project = {
     ...project,
     id: projectId,
     trackingCode,
     status: ProjectStatus.PENDIENTE,
     createdAt: project.createdAt || now,
-    updatedAt: now
+    updatedAt: now,
+    ...(driveResult?.ok && driveResult.folderId ? {
+      driveFolderId: driveResult.folderId,
+      driveFolderUrl: driveResult.folderUrl,
+      driveUploadsFolderId: driveResult.uploadsFolderId,
+      driveReferencesFolderId: driveResult.referencesFolderId,
+      driveFinalFilesFolderId: driveResult.finalFilesFolderId
+    } : (project.driveFolderId ? {
+      driveFolderId: project.driveFolderId,
+      driveFolderUrl: project.driveFolderUrl,
+      driveUploadsFolderId: project.driveUploadsFolderId,
+      driveReferencesFolderId: project.driveReferencesFolderId,
+      driveFinalFilesFolderId: project.driveFinalFilesFolderId
+    } : {}))
   };
 
   const trackingData = {
@@ -372,6 +401,7 @@ export async function createPublicOrderWithTracking(project: Project): Promise<s
     publicMessage: "Pedido recibido en cola de diseño del atelier."
   };
 
+  // 3. Guardar pedido en Firestore (NUNCA bloquear el pedido si Drive falla)
   try {
     const batch = writeBatch(db);
     const projRef = doc(db, "projects", projectId);
@@ -381,11 +411,48 @@ export async function createPublicOrderWithTracking(project: Project): Promise<s
     batch.set(trackRef, sanitizeForFirestore(trackingData));
 
     await batch.commit();
-    return trackingCode;
+    return {
+      trackingCode,
+      driveFolderUrl: projectData.driveFolderUrl,
+      driveError: driveResult ? !driveResult.ok : false
+    };
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `projects/${projectId}`);
     throw error;
   }
+}
+
+/**
+ * Función administrativa para crear o reintentar la creación de carpeta en Google Drive
+ * para un proyecto existente desde el panel de administración.
+ */
+export async function createDriveFolderForExistingProject(
+  project: Project
+): Promise<{ ok: boolean; folderUrl?: string; error?: string }> {
+  if (project.driveFolderId && project.driveFolderUrl) {
+    return { ok: true, folderUrl: project.driveFolderUrl };
+  }
+
+  const result = await createOrGetDriveFolderForProject(project);
+  if (!result.ok || !result.folderId) {
+    return { 
+      ok: false, 
+      error: result.error || "No se pudo generar la carpeta en Google Drive." 
+    };
+  }
+
+  const updatedProject: Project = {
+    ...project,
+    driveFolderId: result.folderId,
+    driveFolderUrl: result.folderUrl,
+    driveUploadsFolderId: result.uploadsFolderId,
+    driveReferencesFolderId: result.referencesFolderId,
+    driveFinalFilesFolderId: result.finalFilesFolderId,
+    updatedAt: new Date().toISOString()
+  };
+
+  await saveProjectToFirestore(updatedProject);
+  return { ok: true, folderUrl: result.folderUrl };
 }
 
 export async function getPublicTrackingByCode(code: string): Promise<any> {

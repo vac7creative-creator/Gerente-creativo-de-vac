@@ -147,6 +147,13 @@ export interface Project {
   uploadedFiles?: ProjectMediaFile[];
   googleDriveUrl?: string;
   
+  // Google Drive integration fields
+  driveFolderId?: string;
+  driveFolderUrl?: string;
+  driveUploadsFolderId?: string;
+  driveReferencesFolderId?: string;
+  driveFinalFilesFolderId?: string;
+  
   // Dynamic fields based on type
   weddingDetails?: WeddingDetails;
   xvDetails?: XvDetails;
