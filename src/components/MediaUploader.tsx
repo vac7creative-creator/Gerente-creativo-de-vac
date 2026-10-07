@@ -51,33 +51,58 @@ export default function MediaUploader({
 
   const sectionTitle = getMediaSectionTitle(serviceType);
 
-  const handleFiles = (incomingFiles: FileList | null) => {
+  const handleFiles = async (incomingFiles: FileList | null) => {
     if (!incomingFiles || incomingFiles.length === 0) return;
     setUploadError("");
 
-    const newMediaItems: ProjectMediaFile[] = [];
+    const fileList = Array.from(incomingFiles);
+    const validFiles: File[] = [];
 
-    Array.from(incomingFiles).forEach((file) => {
+    for (const file of fileList) {
       // 25MB max per client-side file
       if (file.size > 25 * 1024 * 1024) {
         setUploadError(`El archivo "${file.name}" supera los 25MB. Puedes usar el enlace a Google Drive para archivos de gran tamaño.`);
-        return;
+      } else {
+        validFiles.push(file);
       }
+    }
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        const mediaFile: ProjectMediaFile = {
-          id: `file_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          url: result || ""
-        };
-        onChangeFiles([...files, mediaFile]);
-      };
-      reader.readAsDataURL(file);
-    });
+    if (validFiles.length === 0) return;
+
+    try {
+      const readPromises = validFiles.map((file) => {
+        return new Promise<ProjectMediaFile>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const result = e.target?.result as string;
+            resolve({
+              id: `file_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              url: result || ""
+            });
+          };
+          reader.onerror = () => {
+            resolve({
+              id: `file_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              url: ""
+            });
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+
+      const newMediaItems = await Promise.all(readPromises);
+      const validNewItems = newMediaItems.filter((item) => item.url.length > 0);
+      onChangeFiles([...files, ...validNewItems]);
+    } catch (err) {
+      console.warn("Error reading files:", err);
+      setUploadError("Ocurrió un error al procesar los archivos seleccionados.");
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -151,8 +176,12 @@ export default function MediaUploader({
           ref={fileInputRef}
           type="file"
           multiple
+          accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.zip,.rar"
           className="hidden"
-          onChange={(e) => handleFiles(e.target.files)}
+          onChange={(e) => {
+            handleFiles(e.target.files);
+            e.target.value = "";
+          }}
         />
         <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3">
           <Upload className="w-6 h-6" />

@@ -474,8 +474,8 @@ export async function getPublicTrackingByCode(code: string): Promise<any> {
   }
 }
 
-export async function updateProjectAndTracking(project: Project): Promise<void> {
-  if (!project.id) throw new Error("Project ID is missing for update.");
+export async function updateProjectAndTracking(project: Project): Promise<Project> {
+  if (!project.id) throw new Error("El ID del proyecto es requerido para guardar.");
   const trackingCode = project.trackingCode || generateTrackingCode();
   const now = new Date().toISOString();
 
@@ -490,7 +490,7 @@ export async function updateProjectAndTracking(project: Project): Promise<void> 
     projectId: project.id,
     serviceType: project.type,
     status: project.status,
-    createdAt: project.createdAt,
+    createdAt: project.createdAt || now,
     updatedAt: now,
     publicMessage: `Actualizado a estado: ${project.status}`
   };
@@ -504,8 +504,10 @@ export async function updateProjectAndTracking(project: Project): Promise<void> 
     batch.set(trackRef, sanitizeForFirestore(trackingData), { merge: true });
 
     await batch.commit();
+    return updatedProject;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `projects/${project.id}`);
+    throw error;
   }
 }
 

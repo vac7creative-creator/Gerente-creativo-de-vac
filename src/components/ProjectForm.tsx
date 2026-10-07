@@ -38,7 +38,9 @@ import {
   Check,
   ExternalLink,
   Upload,
-  ArrowRight
+  ArrowRight,
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import { SERVICES_CATALOG_DATA, ServiceCatalogItem, PackageItem, isFeatureActive } from "../data/servicesCatalog";
 import { CurrencyCode, detectUserCurrency, formatCurrencyPrice } from "../utils/currency";
@@ -46,7 +48,7 @@ import MediaUploader from "./MediaUploader";
 
 interface ProjectFormProps {
   project?: Project; // If provided, we're editing
-  onSave: (project: Project) => void;
+  onSave: (project: Project) => void | Promise<void>;
   onClose: () => void;
   initialServiceType?: ProjectType;
   initialPackageId?: string;
@@ -100,6 +102,7 @@ export default function ProjectForm({
   const [serviceVariant, setServiceVariant] = useState<string>("");
   const [generalNotes, setGeneralNotes] = useState("");
   const [formError, setFormError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Common media files & Google Drive
   const [uploadedFiles, setUploadedFiles] = useState<ProjectMediaFile[]>([]);
@@ -375,177 +378,193 @@ export default function ProjectForm({
   };
 
   // Submit Handler
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
 
     if (!clientName.trim()) {
-      setFormError("Por favor, introduce el nombre de contacto.");
+      setFormError("Por favor, introduce el nombre completo del cliente o contacto.");
       return;
     }
     if (!clientPhone.trim() && !clientEmail.trim()) {
-      setFormError("Introduce al teléfono o correo de contacto para poder comunicarnos.");
+      setFormError("Introduce al menos un teléfono/WhatsApp o correo de contacto.");
       return;
     }
 
-    const now = new Date().toISOString();
-    const projectId = project?.id || (typeof crypto !== "undefined" && crypto.randomUUID ? `proj_${crypto.randomUUID()}` : `proj_${Date.now()}`);
+    setIsSubmitting(true);
 
-    let weddingDetailsObj: WeddingDetails | undefined = undefined;
-    let xvDetailsObj: XvDetails | undefined = undefined;
-    let menuDetailsObj: DigitalMenuDetails | undefined = undefined;
-    let otherDetailsObj: OtherDetails | undefined = undefined;
+    try {
+      const now = new Date().toISOString();
+      const projectId = project?.id || (typeof crypto !== "undefined" && crypto.randomUUID ? `proj_${crypto.randomUUID()}` : `proj_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`);
 
-    if (selectedType === ProjectType.BODA) {
-      weddingDetailsObj = {
-        novioName: weddingNovio,
-        noviaName: weddingNovia,
-        fecha: weddingFecha,
-        hora: weddingHora,
-        fraseEspecial: weddingFrase,
-        ceremoniaIglesia,
-        ceremoniaDireccion,
-        ceremoniaMapsUrl: ceremoniaMaps,
-        recepcionLocal,
-        recepcionDireccion,
-        recepcionMapsUrl: recepcionMaps,
-        confirmacionWhatsapp: confirmWeddingWhatsapp,
-        confirmacionFechaLimite: confirmWeddingLimite,
-        multimediaFotos: uploadedFiles.map(f => f.url),
-        multimediaVideoUrl: weddingYoutube,
-        multimediaMusicaNombre: weddingMusica,
-        youtubeUrl: weddingYoutube,
-        colorPalette: isCustomPalette ? "Personalizado" : weddingPaletteName,
-        colorPaleteCustomValue: isCustomPalette ? weddingPaletteCustom : undefined,
-        visualStyle: weddingVisualStyle,
-        extras: {
-          cuentaRegresiva: isFeatureActive("cuenta_regresiva", currentPackage, selectedAddons),
-          galeriaFotos: isFeatureActive("galeria_fotos", currentPackage, selectedAddons),
-          historiaAmor: isFeatureActive("historia_amor", currentPackage, selectedAddons),
-          confirmacionWhatsapp: isFeatureActive("confirmacion_whatsapp", currentPackage, selectedAddons),
-          mesaRegalos: isFeatureActive("mesa_regalos", currentPackage, selectedAddons),
-          dressCode: isFeatureActive("dress_code", currentPackage, selectedAddons),
-          videoFondo: isFeatureActive("video_slideshow", currentPackage, selectedAddons),
-          animacionesPremium: isFeatureActive("animaciones_premium", currentPackage, selectedAddons)
-        }
-      };
-    } else if (selectedType === ProjectType.XV_ANOS) {
-      const hasMusica = isFeatureActive("musica", currentPackage, selectedAddons);
-      const hasGaleria = isFeatureActive("galeria_fotos", currentPackage, selectedAddons);
-      const hasCuentaRegresiva = isFeatureActive("cuenta_regresiva", currentPackage, selectedAddons);
-      const hasMaps = isFeatureActive("google_maps", currentPackage, selectedAddons);
-      const hasWhatsapp = isFeatureActive("confirmacion_whatsapp", currentPackage, selectedAddons);
-      const hasDressCode = isFeatureActive("dress_code", currentPackage, selectedAddons);
-      const hasMesaRegalos = isFeatureActive("mesa_regalos", currentPackage, selectedAddons);
-      const hasVideo = isFeatureActive("video_slideshow", currentPackage, selectedAddons);
-      const hasAnimaciones = isFeatureActive("animaciones_premium", currentPackage, selectedAddons);
+      let weddingDetailsObj: WeddingDetails | undefined = undefined;
+      let xvDetailsObj: XvDetails | undefined = undefined;
+      let menuDetailsObj: DigitalMenuDetails | undefined = undefined;
+      let otherDetailsObj: OtherDetails | undefined = undefined;
 
-      xvDetailsObj = {
-        quinceaneraName: xvName,
-        fecha: xvFecha,
-        hora: xvHora,
-        lugar: xvLugar,
-        mapsUrl: hasMaps ? xvMaps : "",
-        musicaNombre: hasMusica ? xvMusica : "",
-        galleryEnabled: hasGaleria,
-        videoEnabled: hasVideo,
-        videoUrl: hasVideo ? xvYoutube : "",
-        colorPalette: xvPalette,
-        tematica: xvTematica,
-        confirmacionWhatsapp: hasWhatsapp ? xvConfirmWhatsapp : "",
-        cuentaRegresiva: hasCuentaRegresiva,
-        extras: { 
-          mesaRegalos: hasMesaRegalos, 
-          dressCode: hasDressCode, 
-          animacionesPremium: hasAnimaciones 
-        }
+      if (selectedType === ProjectType.BODA) {
+        weddingDetailsObj = {
+          novioName: weddingNovio,
+          noviaName: weddingNovia,
+          fecha: weddingFecha,
+          hora: weddingHora,
+          fraseEspecial: weddingFrase,
+          ceremoniaIglesia,
+          ceremoniaDireccion,
+          ceremoniaMapsUrl: ceremoniaMaps,
+          recepcionLocal,
+          recepcionDireccion,
+          recepcionMapsUrl: recepcionMaps,
+          confirmacionWhatsapp: confirmWeddingWhatsapp,
+          confirmacionFechaLimite: confirmWeddingLimite,
+          multimediaFotos: uploadedFiles.map(f => f.url),
+          multimediaVideoUrl: weddingYoutube,
+          multimediaMusicaNombre: weddingMusica,
+          youtubeUrl: weddingYoutube,
+          colorPalette: isCustomPalette ? "Personalizado" : weddingPaletteName,
+          colorPaleteCustomValue: isCustomPalette ? weddingPaletteCustom : undefined,
+          visualStyle: weddingVisualStyle,
+          extras: {
+            cuentaRegresiva: isFeatureActive("cuenta_regresiva", currentPackage, selectedAddons),
+            galeriaFotos: isFeatureActive("galeria_fotos", currentPackage, selectedAddons),
+            historiaAmor: isFeatureActive("historia_amor", currentPackage, selectedAddons),
+            confirmacionWhatsapp: isFeatureActive("confirmacion_whatsapp", currentPackage, selectedAddons),
+            mesaRegalos: isFeatureActive("mesa_regalos", currentPackage, selectedAddons),
+            dressCode: isFeatureActive("dress_code", currentPackage, selectedAddons),
+            videoFondo: isFeatureActive("video_slideshow", currentPackage, selectedAddons),
+            animacionesPremium: isFeatureActive("animaciones_premium", currentPackage, selectedAddons)
+          }
+        };
+      } else if (selectedType === ProjectType.XV_ANOS) {
+        const hasMusica = isFeatureActive("musica", currentPackage, selectedAddons);
+        const hasGaleria = isFeatureActive("galeria_fotos", currentPackage, selectedAddons);
+        const hasCuentaRegresiva = isFeatureActive("cuenta_regresiva", currentPackage, selectedAddons);
+        const hasMaps = isFeatureActive("google_maps", currentPackage, selectedAddons);
+        const hasWhatsapp = isFeatureActive("confirmacion_whatsapp", currentPackage, selectedAddons);
+        const hasDressCode = isFeatureActive("dress_code", currentPackage, selectedAddons);
+        const hasMesaRegalos = isFeatureActive("mesa_regalos", currentPackage, selectedAddons);
+        const hasVideo = isFeatureActive("video_slideshow", currentPackage, selectedAddons);
+        const hasAnimaciones = isFeatureActive("animaciones_premium", currentPackage, selectedAddons);
+
+        xvDetailsObj = {
+          quinceaneraName: xvName,
+          fecha: xvFecha,
+          hora: xvHora,
+          lugar: xvLugar,
+          mapsUrl: hasMaps ? xvMaps : "",
+          musicaNombre: hasMusica ? xvMusica : "",
+          galleryEnabled: hasGaleria,
+          videoEnabled: hasVideo,
+          videoUrl: hasVideo ? xvYoutube : "",
+          colorPalette: xvPalette,
+          tematica: xvTematica,
+          confirmacionWhatsapp: hasWhatsapp ? xvConfirmWhatsapp : "",
+          cuentaRegresiva: hasCuentaRegresiva,
+          extras: { 
+            mesaRegalos: hasMesaRegalos, 
+            dressCode: hasDressCode, 
+            animacionesPremium: hasAnimaciones 
+          }
+        };
+      } else if (selectedType === ProjectType.CARTA_DIGITAL) {
+        menuDetailsObj = {
+          businessName: menuBusinessName || clientName,
+          logoUrl: menuLogoUrl,
+          address: menuAddress,
+          whatsapp: menuWhatsapp || clientPhone,
+          instagramUrl: menuInstagram,
+          items: menuItems,
+          designTheme: menuTheme
+        };
+      } else if (selectedType === ProjectType.CUMPLEANOS) {
+        otherDetailsObj = {
+          description: `Cumpleaños de ${bdayName || clientName} (${bdayAge || "Festejo"}). Fecha: ${bdayFecha} ${bdayHora}. Temática: ${bdayTematica}`,
+          requirements: `Lugar: ${bdayLugar}. Maps: ${bdayMaps}. Música: ${bdayMusica}. WhatsApp RSVP: ${bdayConfirmWhatsapp}`,
+          colorPalette: "Festivo",
+          attachmentsInfo: googleDriveUrl
+        };
+      } else if (selectedType === ProjectType.LANDING_PAGE) {
+        otherDetailsObj = {
+          description: `Landing Page para ${landingBrand || clientName}. Objetivo: ${landingGoal}`,
+          requirements: `WhatsApp: ${landingWhatsapp}. Redes: ${landingSocials}. Secciones: ${landingSections}`,
+          colorPalette: "Corporativo",
+          attachmentsInfo: googleDriveUrl
+        };
+      } else if (selectedType === ProjectType.SPOT) {
+        otherDetailsObj = {
+          description: `Spot Publicitario para ${spotCampaign || clientName}. Medio: ${spotTargetMedia}. Duración: ${spotDuration}`,
+          requirements: `Tono: ${spotTone}. Locutor: ${spotVoiceType}. Guion: ${spotScript}`,
+          colorPalette: "Publicidad",
+          attachmentsInfo: googleDriveUrl
+        };
+      } else if (selectedType === ProjectType.FOTO_VIDEO) {
+        otherDetailsObj = {
+          description: `Producción de Video: ${videoProjectName || clientName}. Formato: ${videoFormat}. Duración: ${videoDuration}`,
+          requirements: `Estilo: ${videoStyle}. Instrucciones: ${videoInstructions}`,
+          colorPalette: "Cinematográfico",
+          attachmentsInfo: googleDriveUrl
+        };
+      } else if (selectedType === ProjectType.DISENO_GRAFICO) {
+        otherDetailsObj = {
+          description: `Identidad & Branding: ${brandingBrandName || clientName}. Rubro: ${brandingIndustry}. Personalidad: ${brandingPersonality}`,
+          requirements: `Colores: ${brandingColors}. Requerimientos: ${brandingRequirements}`,
+          colorPalette: brandingColors || "Elegante",
+          attachmentsInfo: googleDriveUrl
+        };
+      } else if (selectedType === ProjectType.ARTES_MULTIMEDIA) {
+        otherDetailsObj = {
+          description: `Diseño / Artes Multimedia: ${artPieceType} (${artDimensions}). Titular: ${artTitle || clientName}. Estilo: ${artStyle}`,
+          requirements: `Textos / Copy: ${artCopy}. Formato: ${artDimensions}. Estilo visual: ${artStyle}. Colores: ${artColors || "A criterio del diseñador"}.`,
+          colorPalette: artColors || "Publicitario",
+          attachmentsInfo: googleDriveUrl
+        };
+      } else {
+        otherDetailsObj = {
+          description: otherDescription || `Solicitud para ${currentCatalogItem.title}`,
+          requirements: otherRequirements,
+          colorPalette: "Estándar",
+          attachmentsInfo: googleDriveUrl
+        };
+      }
+
+      const savedProject: Project = {
+        id: projectId,
+        clientName: clientName.trim(),
+        clientPhone: clientPhone.trim(),
+        clientEmail: clientEmail.trim(),
+        type: selectedType,
+        status: project?.status || ProjectStatus.PENDIENTE,
+        createdAt: project?.createdAt || now,
+        updatedAt: now,
+        packageId: currentPackage?.id || selectedPackageId,
+        packageName: currentPackage?.name || "Básico",
+        totalPrice: totalPricePEN,
+        selectedAddonIds: selectedAddons,
+        serviceVariant: serviceVariant || undefined,
+        uploadedFiles: uploadedFiles,
+        googleDriveUrl: googleDriveUrl,
+        trackingCode: project?.trackingCode,
+        driveFolderId: project?.driveFolderId,
+        driveFolderUrl: project?.driveFolderUrl,
+        driveUploadsFolderId: project?.driveUploadsFolderId,
+        driveReferencesFolderId: project?.driveReferencesFolderId,
+        driveFinalFilesFolderId: project?.driveFinalFilesFolderId,
+        weddingDetails: weddingDetailsObj,
+        xvDetails: xvDetailsObj,
+        menuDetails: menuDetailsObj,
+        otherDetails: otherDetailsObj,
+        generalNotes: isAdminContext ? generalNotes : (project?.generalNotes || "")
       };
-    } else if (selectedType === ProjectType.CARTA_DIGITAL) {
-      menuDetailsObj = {
-        businessName: menuBusinessName || clientName,
-        logoUrl: menuLogoUrl,
-        address: menuAddress,
-        whatsapp: menuWhatsapp || clientPhone,
-        instagramUrl: menuInstagram,
-        items: menuItems,
-        designTheme: menuTheme
-      };
-    } else if (selectedType === ProjectType.CUMPLEANOS) {
-      otherDetailsObj = {
-        description: `Cumpleaños de ${bdayName || clientName} (${bdayAge || "Festejo"}). Fecha: ${bdayFecha} ${bdayHora}. Temática: ${bdayTematica}`,
-        requirements: `Lugar: ${bdayLugar}. Maps: ${bdayMaps}. Música: ${bdayMusica}. WhatsApp RSVP: ${bdayConfirmWhatsapp}`,
-        colorPalette: "Festivo",
-        attachmentsInfo: googleDriveUrl
-      };
-    } else if (selectedType === ProjectType.LANDING_PAGE) {
-      otherDetailsObj = {
-        description: `Landing Page para ${landingBrand || clientName}. Objetivo: ${landingGoal}`,
-        requirements: `WhatsApp: ${landingWhatsapp}. Redes: ${landingSocials}. Secciones: ${landingSections}`,
-        colorPalette: "Corporativo",
-        attachmentsInfo: googleDriveUrl
-      };
-    } else if (selectedType === ProjectType.SPOT) {
-      otherDetailsObj = {
-        description: `Spot Publicitario para ${spotCampaign || clientName}. Medio: ${spotTargetMedia}. Duración: ${spotDuration}`,
-        requirements: `Tono: ${spotTone}. Locutor: ${spotVoiceType}. Guion: ${spotScript}`,
-        colorPalette: "Publicidad",
-        attachmentsInfo: googleDriveUrl
-      };
-    } else if (selectedType === ProjectType.FOTO_VIDEO) {
-      otherDetailsObj = {
-        description: `Producción de Video: ${videoProjectName || clientName}. Formato: ${videoFormat}. Duración: ${videoDuration}`,
-        requirements: `Estilo: ${videoStyle}. Instrucciones: ${videoInstructions}`,
-        colorPalette: "Cinematográfico",
-        attachmentsInfo: googleDriveUrl
-      };
-    } else if (selectedType === ProjectType.DISENO_GRAFICO) {
-      otherDetailsObj = {
-        description: `Identidad & Branding: ${brandingBrandName || clientName}. Rubro: ${brandingIndustry}. Personalidad: ${brandingPersonality}`,
-        requirements: `Colores: ${brandingColors}. Requerimientos: ${brandingRequirements}`,
-        colorPalette: brandingColors || "Elegante",
-        attachmentsInfo: googleDriveUrl
-      };
-    } else if (selectedType === ProjectType.ARTES_MULTIMEDIA) {
-      otherDetailsObj = {
-        description: `Diseño / Artes Multimedia: ${artPieceType} (${artDimensions}). Titular: ${artTitle || clientName}. Estilo: ${artStyle}`,
-        requirements: `Textos / Copy: ${artCopy}. Formato: ${artDimensions}. Estilo visual: ${artStyle}. Colores: ${artColors || "A criterio del diseñador"}.`,
-        colorPalette: artColors || "Publicitario",
-        attachmentsInfo: googleDriveUrl
-      };
-    } else {
-      otherDetailsObj = {
-        description: otherDescription || `Solicitud para ${currentCatalogItem.title}`,
-        requirements: otherRequirements,
-        colorPalette: "Estándar",
-        attachmentsInfo: googleDriveUrl
-      };
+
+      await onSave(savedProject);
+      onClose();
+    } catch (err: any) {
+      console.error("Error saving project:", err);
+      const msg = err?.message || "Ocurrió un error al guardar el proyecto en Firestore. Por favor intenta nuevamente.";
+      setFormError(msg);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const savedProject: Project = {
-      id: projectId,
-      clientName: clientName.trim(),
-      clientPhone: clientPhone.trim(),
-      clientEmail: clientEmail.trim(),
-      type: selectedType,
-      status: project?.status || ProjectStatus.PENDIENTE,
-      createdAt: project?.createdAt || now,
-      updatedAt: now,
-      packageId: currentPackage?.id || selectedPackageId,
-      packageName: currentPackage?.name || "Básico",
-      totalPrice: totalPricePEN,
-      selectedAddonIds: selectedAddons,
-      serviceVariant: serviceVariant || undefined,
-      uploadedFiles: uploadedFiles,
-      googleDriveUrl: googleDriveUrl,
-      weddingDetails: weddingDetailsObj,
-      xvDetails: xvDetailsObj,
-      menuDetails: menuDetailsObj,
-      otherDetails: otherDetailsObj,
-      generalNotes: isAdminContext ? generalNotes : (project?.generalNotes || "")
-    };
-
-    onSave(savedProject);
-    onClose();
   };
 
   return (
@@ -1938,19 +1957,37 @@ export default function ProjectForm({
 
             {/* Action Buttons */}
             <div className="space-y-3 pt-6 border-t border-stone-200 dark:border-stone-800">
+              {formError && (
+                <div className="p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-2xl text-xs text-red-700 dark:text-red-400 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span className="font-medium leading-relaxed">{formError}</span>
+                </div>
+              )}
+
               <button
                 type="submit"
+                disabled={isSubmitting}
                 id="submit-project-btn"
-                className="w-full py-4 bg-stone-900 hover:bg-stone-800 text-white dark:bg-amber-400 dark:hover:bg-amber-300 dark:text-stone-950 font-bold font-space text-xs uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 transition-colors shadow-md cursor-pointer"
+                className="w-full py-4 bg-stone-900 hover:bg-stone-800 text-white dark:bg-amber-400 dark:hover:bg-amber-300 dark:text-stone-950 font-bold font-space text-xs uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 transition-colors shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <Save className="w-4 h-4" />
-                <span>{project ? "Guardar Cambios" : "Registrar Pedido"}</span>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{project ? "Guardando cambios en Firestore..." : "Registrando pedido en Firestore..."}</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>{project ? "Guardar Cambios" : "Registrar Pedido"}</span>
+                  </>
+                )}
               </button>
 
               <button
                 type="button"
+                disabled={isSubmitting}
                 onClick={onClose}
-                className="w-full py-3 bg-stone-200 hover:bg-stone-300 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 font-bold font-space text-xs uppercase tracking-wider rounded-2xl transition-colors cursor-pointer"
+                className="w-full py-3 bg-stone-200 hover:bg-stone-300 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 font-bold font-space text-xs uppercase tracking-wider rounded-2xl transition-colors cursor-pointer disabled:opacity-50"
               >
                 Cancelar
               </button>

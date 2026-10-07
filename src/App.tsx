@@ -296,18 +296,17 @@ export default function App() {
       updatedProj.status = ProjectStatus.PENDIENTE;
     }
 
-    setFormModalOpen(false);
-    setEditingProject(undefined);
-
     try {
       if (isAdminAuthenticated) {
-        await updateProjectAndTracking(updatedProj);
-        const index = projects.findIndex(p => p.id === updatedProj.id);
-        const newList = index >= 0
-          ? projects.map(p => p.id === updatedProj.id ? updatedProj : p)
-          : [updatedProj, ...projects];
-        setProjects(newList);
-        showToast(index >= 0 ? "Proyecto y tracking actualizados" : "¡Nuevo proyecto guardado!");
+        const wasExisting = projects.some(p => p.id === updatedProj.id);
+        const saved = await updateProjectAndTracking(updatedProj);
+        setProjects(prev => {
+          const index = prev.findIndex(p => p.id === saved.id);
+          return index >= 0
+            ? prev.map(p => p.id === saved.id ? saved : p)
+            : [saved, ...prev];
+        });
+        showToast(wasExisting ? "¡Proyecto y seguimiento actualizados con éxito en Firestore!" : "¡Nuevo proyecto creado y guardado en Firestore!", "success");
       } else {
         const orderResult = await createPublicOrderWithTracking(updatedProj);
         const assignedCode = typeof orderResult === "string" ? orderResult : orderResult.trackingCode;
@@ -316,13 +315,23 @@ export default function App() {
           if (orderResult.driveError) {
             showToast("Tu pedido fue registrado correctamente. La carpeta de archivos se terminará de preparar automáticamente.", "info");
           } else if (orderResult.driveFolderUrl) {
-            showToast("¡Pedido y carpeta de Google Drive vinculados con éxito!");
+            showToast("¡Pedido y carpeta de Google Drive vinculados con éxito!", "success");
+          } else {
+            showToast("¡Pedido registrado exitosamente!", "success");
           }
+        } else {
+          showToast("¡Pedido registrado exitosamente!", "success");
         }
       }
-    } catch (err) {
-      console.warn("Error saving project:", err);
-      showToast("Error al registrar la solicitud. Verifica tu conexión.", "info");
+      setEditingProject(undefined);
+    } catch (err: any) {
+      console.error("Error saving project:", err);
+      const isAuthError = err?.message?.includes("PERMISSION_DENIED") || err?.message?.includes("permission-denied");
+      const errorText = isAuthError 
+        ? "Error de permisos en Firestore. Comprueba que tu sesión administrativa esté activa."
+        : (err?.message || "Error al registrar el proyecto en Firestore. Verifica tu conexión.");
+      showToast(errorText, "error");
+      throw new Error(errorText);
     }
   };
 
@@ -494,15 +503,23 @@ export default function App() {
       
       {/* Toast Notification */}
       {toastNotification && (
-        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
-          <div className="px-5 py-3 rounded-2xl shadow-2xl border border-stone-800 bg-stone-950 text-stone-100 dark:bg-stone-900 dark:border-stone-700 flex items-center gap-3 text-xs font-medium">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span>{toastNotification.message}</span>
+        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200 max-w-md">
+          <div className={`px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-3 text-xs font-medium ${
+            toastNotification.type === "error"
+              ? "bg-red-950/95 border-red-800/80 text-red-100 shadow-red-950/40"
+              : toastNotification.type === "info"
+                ? "bg-stone-900 border-stone-800 text-stone-100 dark:bg-stone-900"
+                : "bg-stone-950 text-stone-100 border-stone-800 dark:bg-stone-900 dark:border-stone-700"
+          }`}>
+            <span className={`w-2.5 h-2.5 rounded-full shrink-0 animate-pulse ${
+              toastNotification.type === "error" ? "bg-red-400" : "bg-amber-400"
+            }`} />
+            <span className="flex-1 leading-snug">{toastNotification.message}</span>
             <button 
               onClick={() => setToastNotification(null)}
-              className="ml-3 text-stone-400 hover:text-white cursor-pointer"
+              className="ml-2 text-stone-400 hover:text-white cursor-pointer shrink-0"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
