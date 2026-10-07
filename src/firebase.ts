@@ -95,13 +95,30 @@ export async function testConnection(): Promise<boolean> {
   }
 }
 
-// 4. Clean data helper (remove undefined fields which Firestore rejects)
+// 4. Clean data helper (remove undefined fields and strip large Base64 blobs from Firestore)
 function sanitizeForFirestore(obj: unknown): unknown {
   if (obj === undefined) return null;
-  if (obj === null || typeof obj !== "object") return obj;
-  if (Array.isArray(obj)) {
-    return obj.map(sanitizeForFirestore);
+  if (obj === null) return null;
+
+  if (typeof obj === "string") {
+    // Defense-in-depth: Never persist heavy Base64 or Data URLs in Firestore
+    if (obj.startsWith("data:") || (obj.length > 2048 && /^[A-Za-z0-9+/=]+$/.test(obj.substring(0, 100)))) {
+      return "";
+    }
+    return obj;
   }
+
+  if (typeof obj !== "object") return obj;
+
+  if (Array.isArray(obj)) {
+    return obj
+      .map(sanitizeForFirestore)
+      .filter((item) => {
+        if (typeof item === "string" && item.length === 0) return false;
+        return true;
+      });
+  }
+
   const clean: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
     if (value !== undefined) {

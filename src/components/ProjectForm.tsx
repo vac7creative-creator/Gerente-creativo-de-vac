@@ -13,7 +13,8 @@ import {
   XvDetails, 
   DigitalMenuDetails, 
   OtherDetails,
-  ProjectMediaFile
+  ProjectMediaFile,
+  PendingUploadFile
 } from "../types";
 import { 
   X, 
@@ -45,6 +46,7 @@ import {
 import { SERVICES_CATALOG_DATA, ServiceCatalogItem, PackageItem, isFeatureActive } from "../data/servicesCatalog";
 import { CurrencyCode, detectUserCurrency, formatCurrencyPrice } from "../utils/currency";
 import MediaUploader from "./MediaUploader";
+import { createOrGetDriveFolderForProject, uploadPendingFilesToDrive } from "../services/driveService";
 
 interface ProjectFormProps {
   project?: Project; // If provided, we're editing
@@ -103,9 +105,11 @@ export default function ProjectForm({
   const [generalNotes, setGeneralNotes] = useState("");
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingProgressText, setUploadingProgressText] = useState("");
 
   // Common media files & Google Drive
   const [uploadedFiles, setUploadedFiles] = useState<ProjectMediaFile[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<PendingUploadFile[]>([]);
   const [googleDriveUrl, setGoogleDriveUrl] = useState("");
 
   // 2. Wedding Details State (Boda)
@@ -276,8 +280,12 @@ export default function ProjectForm({
       if (project.selectedAddonIds && project.selectedAddonIds.length > 0) {
         setSelectedAddons(project.selectedAddonIds);
       }
-      if (project.uploadedFiles) {
-        setUploadedFiles(project.uploadedFiles);
+      if (project.uploadedFiles && Array.isArray(project.uploadedFiles)) {
+        // Only keep valid lightweight URL references, strip any legacy base64
+        const sanitizedUploaded = project.uploadedFiles.filter(
+          (f) => f && f.url && !f.url.startsWith("data:")
+        );
+        setUploadedFiles(sanitizedUploaded);
       }
       if (project.googleDriveUrl) {
         setGoogleDriveUrl(project.googleDriveUrl);
@@ -392,15 +400,104 @@ export default function ProjectForm({
     }
 
     setIsSubmitting(true);
+    setUploadingProgressText("");
 
     try {
       const now = new Date().toISOString();
       const projectId = project?.id || (typeof crypto !== "undefined" && crypto.randomUUID ? `proj_${crypto.randomUUID()}` : `proj_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`);
 
+      // 1. Manejo seguro de subida a Google Drive de los archivos seleccionados
+      let driveFolderId = project?.driveFolderId;
+      let driveFolderUrl = project?.driveFolderUrl;
+      let driveUploadsFolderId = project?.driveUploadsFolderId;
+      let driveReferencesFolderId = project?.driveReferencesFolderId;
+      let driveFinalFilesFolderId = project?.driveFinalFilesFolderId;
+
+      let allUploadedFiles: ProjectMediaFile[] = [
+        ...uploadedFiles.filter((f) => f && f.url && !f.url.startsWith("data:"))
+      ];
+
+      if (pendingFiles.length > 0) {
+        setUploadingProgressText("Sincronizando con Google Drive...");
+
+        let targetFolderId = driveUploadsFolderId || driveFolderId;
+
+        // Si aún no tiene carpeta en Google Drive, solicitarla antes de subir los archivos
+        if (!targetFolderId) {
+          try {
+            const driveResult = await createOrGetDriveFolderForProject({
+              id: projectId,
+              clientName: clientName.trim(),
+              clientPhone: clientPhone.trim(),
+              clientEmail: clientEmail.trim(),
+              type: selectedType,
+              status: project?.status || ProjectStatus.PENDIENTE,
+              createdAt: project?.createdAt || now,
+              updatedAt: now,
+              trackingCode: project?.trackingCode,
+              serviceVariant: serviceVariant || undefined
+            });
+
+            if (driveResult.ok && driveResult.folderId) {
+              driveFolderId = driveResult.folderId;
+              driveFolderUrl = driveResult.folderUrl;
+              driveUploadsFolderId = driveResult.uploadsFolderId;
+              driveReferencesFolderId = driveResult.referencesFolderId;
+              driveFinalFilesFolderId = driveResult.finalFilesFolderId;
+              targetFolderId = driveResult.uploadsFolderId || driveResult.folderId;
+            }
+          } catch (driveErr) {
+            console.warn("No se pudo pre-crear la carpeta de Drive:", driveErr);
+          }
+        }
+
+        if (targetFolderId) {
+          setUploadingProgressText(`Subiendo ${pendingFiles.length} archivo(s) a Google Drive...`);
+
+          const { successfulFiles, failedCount } = await uploadPendingFilesToDrive(
+            targetFolderId,
+            pendingFiles,
+            (fileId, status, errorMsg) => {
+              setPendingFiles((prev) =>
+                prev.map((p) =>
+                  p.id === fileId ? { ...p, status, errorMessage: errorMsg } : p
+                )
+              );
+            }
+          );
+
+          if (successfulFiles.length > 0) {
+            allUploadedFiles = [...allUploadedFiles, ...successfulFiles];
+            setUploadedFiles(allUploadedFiles);
+          }
+
+          if (failedCount > 0) {
+            console.warn(`${failedCount} archivo(s) no se pudieron subir a Google Drive.`);
+          }
+        } else {
+          // Si el servidor de Drive no responde, guardamos solo metadata ligera (NUNCA Base64 en Firestore)
+          const fallbackMedia: ProjectMediaFile[] = pendingFiles.map((p) => ({
+            id: p.id,
+            name: p.name,
+            size: p.size,
+            type: p.type,
+            url: "" // Sin base64
+          }));
+          allUploadedFiles = [...allUploadedFiles, ...fallbackMedia];
+        }
+      }
+
+      setUploadingProgressText("Guardando pedido en Firestore...");
+
       let weddingDetailsObj: WeddingDetails | undefined = undefined;
       let xvDetailsObj: XvDetails | undefined = undefined;
       let menuDetailsObj: DigitalMenuDetails | undefined = undefined;
       let otherDetailsObj: OtherDetails | undefined = undefined;
+
+      // Extract only clean URLs (never data: base64) for wedding details
+      const cleanPhotoUrls = allUploadedFiles
+        .map((f) => f.url)
+        .filter((u) => u && !u.startsWith("data:"));
 
       if (selectedType === ProjectType.BODA) {
         weddingDetailsObj = {
@@ -417,7 +514,7 @@ export default function ProjectForm({
           recepcionMapsUrl: recepcionMaps,
           confirmacionWhatsapp: confirmWeddingWhatsapp,
           confirmacionFechaLimite: confirmWeddingLimite,
-          multimediaFotos: uploadedFiles.map(f => f.url),
+          multimediaFotos: cleanPhotoUrls,
           multimediaVideoUrl: weddingYoutube,
           multimediaMusicaNombre: weddingMusica,
           youtubeUrl: weddingYoutube,
@@ -541,14 +638,14 @@ export default function ProjectForm({
         totalPrice: totalPricePEN,
         selectedAddonIds: selectedAddons,
         serviceVariant: serviceVariant || undefined,
-        uploadedFiles: uploadedFiles,
+        uploadedFiles: allUploadedFiles,
         googleDriveUrl: googleDriveUrl,
         trackingCode: project?.trackingCode,
-        driveFolderId: project?.driveFolderId,
-        driveFolderUrl: project?.driveFolderUrl,
-        driveUploadsFolderId: project?.driveUploadsFolderId,
-        driveReferencesFolderId: project?.driveReferencesFolderId,
-        driveFinalFilesFolderId: project?.driveFinalFilesFolderId,
+        driveFolderId,
+        driveFolderUrl,
+        driveUploadsFolderId,
+        driveReferencesFolderId,
+        driveFinalFilesFolderId,
         weddingDetails: weddingDetailsObj,
         xvDetails: xvDetailsObj,
         menuDetails: menuDetailsObj,
@@ -564,6 +661,7 @@ export default function ProjectForm({
       setFormError(msg);
     } finally {
       setIsSubmitting(false);
+      setUploadingProgressText("");
     }
   };
 
@@ -1801,10 +1899,13 @@ export default function ProjectForm({
             {/* SECTION 4: FOTOGRAFÍAS Y ARCHIVOS (MEDIA UPLOADER) */}
             <MediaUploader
               serviceType={selectedType}
-              files={uploadedFiles}
-              onChangeFiles={setUploadedFiles}
+              existingFiles={uploadedFiles}
+              onChangeExistingFiles={setUploadedFiles}
+              pendingFiles={pendingFiles}
+              onChangePendingFiles={setPendingFiles}
               googleDriveUrl={googleDriveUrl}
               onChangeGoogleDriveUrl={setGoogleDriveUrl}
+              isUploading={isSubmitting}
             />
 
             {/* SECTION 5: EXTRAS Y CARACTERÍSTICAS INCLUIDAS */}
@@ -1973,7 +2074,7 @@ export default function ProjectForm({
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>{project ? "Guardando cambios en Firestore..." : "Registrando pedido en Firestore..."}</span>
+                    <span>{uploadingProgressText || (project ? "Guardando cambios en Firestore..." : "Registrando pedido en Firestore...")}</span>
                   </>
                 ) : (
                   <>

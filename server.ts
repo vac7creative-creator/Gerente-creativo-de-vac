@@ -8,6 +8,7 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import driveFolderHandler from "./api/drive-folder.ts";
+import driveUploadHandler from "./api/drive-upload.ts";
 
 dotenv.config();
 
@@ -17,11 +18,16 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// Endpoint de Google Drive
+// Endpoints de Google Drive
 app.all("/api/drive-folder", (req, res) => {
   return driveFolderHandler(req, res);
+});
+
+app.all("/api/drive-upload", (req, res) => {
+  return driveUploadHandler(req, res);
 });
 
 // En desarrollo se monta el middleware de Vite; en producción se sirve el bundle de dist

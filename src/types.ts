@@ -127,6 +127,20 @@ export interface ProjectMediaFile {
   size?: number;
   type?: string;
   url: string;
+  driveFileId?: string;
+}
+
+export interface PendingUploadFile {
+  id: string;
+  file: File;
+  previewUrl: string;
+  name: string;
+  size: number;
+  type: string;
+  status: "pending" | "uploading" | "success" | "error";
+  progress?: number;
+  errorMessage?: string;
+  uploadedResult?: ProjectMediaFile;
 }
 
 export interface Project {
