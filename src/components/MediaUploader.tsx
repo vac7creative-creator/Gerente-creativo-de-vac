@@ -113,9 +113,9 @@ export default function MediaUploader({
     const newPendingItems: PendingUploadFile[] = [];
 
     for (const file of fileList) {
-      // 50MB max limit per direct upload file
+      // Protección técnica interna razonable para evitar congelar el navegador o desbordar payloads
       if (file.size > 50 * 1024 * 1024) {
-        setUploadError(`El archivo "${file.name}" supera los 50MB. Para archivos muy pesados, te recomendamos usar el enlace directo de Google Drive abajo.`);
+        setUploadError(`Este archivo es demasiado grande para subirlo directamente. Puedes compartirlo mediante un enlace de Google Drive o Dropbox.`);
         continue;
       }
 
@@ -248,19 +248,15 @@ export default function MediaUploader({
         <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2.5">
           <Upload className="w-6 h-6" />
         </div>
-        <p className="text-sm font-space font-bold text-stone-900 dark:text-stone-100">
+        <p className="text-sm font-space font-bold uppercase tracking-wide text-stone-900 dark:text-stone-100">
           Arrastra o selecciona tus archivos aquí
         </p>
         <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-          Selección múltiple de imágenes, fotos en alta resolución, audios o documentos
+          Selección múltiple: imágenes, fotos en alta resolución, audios y otros archivos.
         </p>
-        <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[11px] font-medium">
-          <HardDrive className="w-3.5 h-3.5" />
-          <span>Se organizarán automáticamente en tu carpeta de Google Drive</span>
-        </div>
       </div>
 
-      {/* PENDING FILES (SELECTED LOCALLY, READY TO UPLOAD TO DRIVE) */}
+      {/* PENDING FILES (SELECTED LOCALLY, READY TO UPLOAD) */}
       {pendingFiles.length > 0 && (
         <div className="space-y-3 pt-1">
           <div className="flex items-center justify-between text-xs text-stone-600 dark:text-stone-400">
@@ -270,7 +266,7 @@ export default function MediaUploader({
             <div className="flex items-center gap-2">
               {successFilesCount > 0 && (
                 <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
-                  {successFilesCount} en Drive
+                  {successFilesCount} subido{successFilesCount > 1 ? "s" : ""}
                 </span>
               )}
               {failedFilesCount > 0 && (
@@ -289,11 +285,11 @@ export default function MediaUploader({
                 <div>
                   <p className="text-xs font-bold text-red-800 dark:text-red-300">
                     {failedFilesCount === 1 
-                      ? "1 archivo no se pudo subir a Google Drive." 
-                      : `${failedFilesCount} archivos no se pudieron subir a Google Drive.`}
+                      ? "1 archivo no se pudo subir." 
+                      : `${failedFilesCount} archivos no se pudieron subir.`}
                   </p>
                   <p className="text-[11px] text-red-700 dark:text-red-400 mt-0.5 leading-relaxed">
-                    Tus archivos originales siguen intactos en tu dispositivo. Pulsa <strong>Reintentar</strong> para completar la subida de los archivos pendientes.
+                    Tus archivos originales siguen intactos en tu dispositivo. Pulsa <strong>Reintentar</strong> para completar la subida.
                   </p>
                 </div>
               </div>
@@ -347,7 +343,7 @@ export default function MediaUploader({
                     {item.status === "uploading" && (
                       <div className="absolute inset-0 bg-stone-950/65 backdrop-blur-[1px] flex flex-col items-center justify-center text-amber-400 gap-1.5 z-10">
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        <span className="text-[10px] font-mono font-bold">Subiendo a Drive...</span>
+                        <span className="text-[10px] font-mono font-bold">Subiendo...</span>
                       </div>
                     )}
 
@@ -407,7 +403,7 @@ export default function MediaUploader({
                         item.status === "uploading" ? "text-amber-500 animate-pulse" :
                         "text-stone-400"
                       }`}>
-                        {item.status === "success" ? "✓ Drive" :
+                        {item.status === "success" ? "✓ Subido" :
                          item.status === "uploading" ? "Subiendo" :
                          item.status === "error" ? "Error al subir" :
                          "Pendiente"}
@@ -426,7 +422,7 @@ export default function MediaUploader({
         <div className="space-y-2 pt-2 border-t border-stone-200/60 dark:border-stone-800/60">
           <div className="flex items-center justify-between text-xs text-stone-600 dark:text-stone-400">
             <span className="font-semibold uppercase tracking-wider text-[11px] text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-              <Check className="w-3.5 h-3.5" /> Archivos guardados en Google Drive ({currentExistingFiles.length})
+              <Check className="w-3.5 h-3.5" /> Archivos subidos con éxito ({currentExistingFiles.length})
             </span>
           </div>
 
@@ -454,7 +450,7 @@ export default function MediaUploader({
                     )}
 
                     <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-emerald-600 text-white text-[9px] font-mono flex items-center gap-1 shadow-xs">
-                      <Check className="w-2.5 h-2.5" /> Drive
+                      <Check className="w-2.5 h-2.5" /> Subido
                     </div>
 
                     {!isUploading && (
@@ -486,7 +482,7 @@ export default function MediaUploader({
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-[10px] text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-0.5"
-                          title="Abrir en Google Drive"
+                          title="Ver archivo"
                         >
                           Ver <ExternalLink className="w-2.5 h-2.5" />
                         </a>
@@ -500,25 +496,25 @@ export default function MediaUploader({
         </div>
       )}
 
-      {/* GOOGLE DRIVE / DROPBOX FOLDER LINK (OPTIONAL) */}
+      {/* GOOGLE DRIVE / DROPBOX FOLDER LINK (OPTIONAL ALTERNATIVE) */}
       <div className="p-4 bg-stone-50 dark:bg-stone-900/60 rounded-2xl border border-stone-200 dark:border-stone-800 space-y-2">
         <div className="flex items-center gap-2">
           <LinkIcon className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           <label className="text-xs font-space font-bold uppercase text-stone-700 dark:text-stone-300">
-            Tengo un enlace a carpeta en Google Drive o Dropbox (Opcional)
+            ¿Tienes muchos archivos o videos pesados? (Opcional)
           </label>
         </div>
+        <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-normal">
+          Puedes compartir un enlace de Google Drive o Dropbox con permisos de lectura.
+        </p>
         <input
           type="url"
           value={googleDriveUrl}
           onChange={(e) => onChangeGoogleDriveUrl(e.target.value)}
-          placeholder="https://drive.google.com/drive/folders/..."
+          placeholder="https://drive.google.com/... o Dropbox"
           disabled={isUploading}
           className="w-full h-11 px-3.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-xs font-mono text-stone-900 dark:text-stone-100 focus:ring-1 focus:ring-amber-500 focus:outline-none"
         />
-        <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-normal">
-          Si ya tienes una carpeta con videos 4K, sesiones de fotos o material extenso, puedes compartir el enlace con permisos de lectura.
-        </p>
       </div>
     </div>
   );
