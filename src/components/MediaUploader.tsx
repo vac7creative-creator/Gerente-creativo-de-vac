@@ -17,7 +17,8 @@ import {
   Loader2,
   HardDrive,
   ExternalLink,
-  Trash2
+  Trash2,
+  RefreshCw
 } from "lucide-react";
 import { ProjectMediaFile, PendingUploadFile, ProjectType } from "../types";
 
@@ -33,6 +34,9 @@ interface MediaUploaderProps {
   googleDriveUrl: string;
   onChangeGoogleDriveUrl: (url: string) => void;
   isUploading?: boolean;
+  onRetryFile?: (fileId: string) => void;
+  onRetryAllFailed?: () => void;
+  uploadSummaryMessage?: string;
 }
 
 export function getMediaSectionTitle(type: ProjectType): string {
@@ -68,7 +72,10 @@ export default function MediaUploader({
   onChangePendingFiles,
   googleDriveUrl,
   onChangeGoogleDriveUrl,
-  isUploading = false
+  isUploading = false,
+  onRetryFile,
+  onRetryAllFailed,
+  uploadSummaryMessage
 }: MediaUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -79,6 +86,9 @@ export default function MediaUploader({
   const updateExistingFiles = onChangeExistingFiles || onChangeFiles || (() => {});
 
   const sectionTitle = getMediaSectionTitle(serviceType);
+
+  const failedFilesCount = pendingFiles.filter((p) => p.status === "error").length;
+  const successFilesCount = pendingFiles.filter((p) => p.status === "success").length;
 
   // Cleanup object URLs when component unmounts
   useEffect(() => {
@@ -252,15 +262,61 @@ export default function MediaUploader({
 
       {/* PENDING FILES (SELECTED LOCALLY, READY TO UPLOAD TO DRIVE) */}
       {pendingFiles.length > 0 && (
-        <div className="space-y-2 pt-1">
+        <div className="space-y-3 pt-1">
           <div className="flex items-center justify-between text-xs text-stone-600 dark:text-stone-400">
             <span className="font-semibold uppercase tracking-wider text-[11px]">
               Archivos seleccionados ({pendingFiles.length})
             </span>
-            <span className="text-[11px] text-stone-400">
-              Se subirán al guardar el pedido
-            </span>
+            <div className="flex items-center gap-2">
+              {successFilesCount > 0 && (
+                <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
+                  {successFilesCount} en Drive
+                </span>
+              )}
+              {failedFilesCount > 0 && (
+                <span className="text-[11px] font-mono font-bold text-red-600 dark:text-red-400">
+                  {failedFilesCount} fallido{failedFilesCount > 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
           </div>
+
+          {/* FAILED FILES RETRY BANNER */}
+          {failedFilesCount > 0 && (
+            <div className="p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-bold text-red-800 dark:text-red-300">
+                    {failedFilesCount === 1 
+                      ? "1 archivo no se pudo subir a Google Drive." 
+                      : `${failedFilesCount} archivos no se pudieron subir a Google Drive.`}
+                  </p>
+                  <p className="text-[11px] text-red-700 dark:text-red-400 mt-0.5 leading-relaxed">
+                    Tus archivos originales siguen intactos en tu dispositivo. Pulsa <strong>Reintentar</strong> para completar la subida de los archivos pendientes.
+                  </p>
+                </div>
+              </div>
+              {onRetryAllFailed && (
+                <button
+                  type="button"
+                  disabled={isUploading}
+                  onClick={onRetryAllFailed}
+                  className="px-4 py-2.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white rounded-xl text-xs font-bold font-space flex items-center gap-1.5 shadow-md transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isUploading ? "animate-spin" : ""}`} />
+                  <span>Reintentar archivos ({failedFilesCount})</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {uploadSummaryMessage && failedFilesCount === 0 && (
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{uploadSummaryMessage}</span>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {pendingFiles.map((item) => {
@@ -268,7 +324,13 @@ export default function MediaUploader({
               return (
                 <div
                   key={item.id}
-                  className="relative group bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-2.5 flex flex-col justify-between shadow-xs overflow-hidden transition-all"
+                  className={`relative group bg-white dark:bg-stone-900 border rounded-2xl p-2.5 flex flex-col justify-between shadow-xs overflow-hidden transition-all ${
+                    item.status === "error" 
+                      ? "border-red-400 dark:border-red-600/70 bg-red-50/20 dark:bg-red-950/10"
+                      : item.status === "success"
+                      ? "border-emerald-500/40 bg-emerald-50/10"
+                      : "border-stone-200 dark:border-stone-800"
+                  }`}
                 >
                   <div className="w-full h-24 rounded-xl overflow-hidden bg-stone-100 dark:bg-stone-800 flex items-center justify-center relative">
                     {isImage ? (
@@ -283,24 +345,36 @@ export default function MediaUploader({
 
                     {/* Status Overlay */}
                     {item.status === "uploading" && (
-                      <div className="absolute inset-0 bg-stone-950/60 backdrop-blur-[1px] flex flex-col items-center justify-center text-amber-400 gap-1">
+                      <div className="absolute inset-0 bg-stone-950/65 backdrop-blur-[1px] flex flex-col items-center justify-center text-amber-400 gap-1.5 z-10">
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        <span className="text-[10px] font-mono font-medium">Subiendo...</span>
+                        <span className="text-[10px] font-mono font-bold">Subiendo a Drive...</span>
                       </div>
                     )}
 
                     {item.status === "success" && (
-                      <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-emerald-600 text-white text-[9px] font-mono flex items-center gap-1 shadow-xs">
+                      <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-emerald-600 text-white text-[9px] font-mono flex items-center gap-1 shadow-xs z-10">
                         <Check className="w-2.5 h-2.5" /> Subido
                       </div>
                     )}
 
                     {item.status === "error" && (
-                      <div className="absolute inset-0 bg-red-950/70 flex flex-col items-center justify-center text-red-200 p-2 text-center">
-                        <AlertCircle className="w-4 h-4 text-red-400 mb-1" />
-                        <span className="text-[9px] leading-tight font-medium">
+                      <div className="absolute inset-0 bg-red-950/85 backdrop-blur-[1px] flex flex-col items-center justify-center text-red-100 p-2 text-center gap-1.5 z-10">
+                        <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                        <span className="text-[9px] font-bold leading-tight text-red-200">
                           {item.errorMessage || "Error al subir"}
                         </span>
+                        {onRetryFile && !isUploading && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRetryFile(item.id);
+                            }}
+                            className="px-2.5 py-1 bg-red-600 hover:bg-red-500 active:scale-95 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-sm transition-all cursor-pointer"
+                          >
+                            <RefreshCw className="w-2.5 h-2.5" /> Reintentar
+                          </button>
+                        )}
                       </div>
                     )}
 
@@ -311,7 +385,7 @@ export default function MediaUploader({
                           e.stopPropagation();
                           removePendingFile(item.id);
                         }}
-                        className="absolute top-1 right-1 p-1 rounded-full bg-stone-950/75 text-white hover:bg-red-600 transition-colors cursor-pointer"
+                        className="absolute top-1 right-1 p-1 rounded-full bg-stone-950/75 text-white hover:bg-red-600 transition-colors cursor-pointer z-20"
                         title="Quitar de la lista"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -327,7 +401,7 @@ export default function MediaUploader({
                       <span className="text-[10px] text-stone-400 font-mono">
                         {formatFileSize(item.size)}
                       </span>
-                      <span className={`text-[10px] font-mono ${
+                      <span className={`text-[10px] font-mono font-bold ${
                         item.status === "success" ? "text-emerald-500" :
                         item.status === "error" ? "text-red-500" :
                         item.status === "uploading" ? "text-amber-500 animate-pulse" :
@@ -335,7 +409,7 @@ export default function MediaUploader({
                       }`}>
                         {item.status === "success" ? "✓ Drive" :
                          item.status === "uploading" ? "Subiendo" :
-                         item.status === "error" ? "Error" :
+                         item.status === "error" ? "Error al subir" :
                          "Pendiente"}
                       </span>
                     </div>

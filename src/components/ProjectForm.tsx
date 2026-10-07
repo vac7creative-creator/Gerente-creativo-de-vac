@@ -41,12 +41,13 @@ import {
   Upload,
   ArrowRight,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from "lucide-react";
 import { SERVICES_CATALOG_DATA, ServiceCatalogItem, PackageItem, isFeatureActive } from "../data/servicesCatalog";
 import { CurrencyCode, detectUserCurrency, formatCurrencyPrice } from "../utils/currency";
 import MediaUploader from "./MediaUploader";
-import { createOrGetDriveFolderForProject, uploadPendingFilesToDrive } from "../services/driveService";
+import { createOrGetDriveFolderForProject, uploadPendingFilesToDrive, uploadFileToDrive } from "../services/driveService";
 
 interface ProjectFormProps {
   project?: Project; // If provided, we're editing
@@ -111,6 +112,16 @@ export default function ProjectForm({
   const [uploadedFiles, setUploadedFiles] = useState<ProjectMediaFile[]>([]);
   const [pendingFiles, setPendingFiles] = useState<PendingUploadFile[]>([]);
   const [googleDriveUrl, setGoogleDriveUrl] = useState("");
+  const [activeProjectId, setActiveProjectId] = useState<string>(
+    project?.id || (typeof crypto !== "undefined" && crypto.randomUUID ? `proj_${crypto.randomUUID()}` : `proj_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`)
+  );
+  const [activeDriveFolderId, setActiveDriveFolderId] = useState<string | undefined>(project?.driveFolderId);
+  const [activeDriveFolderUrl, setActiveDriveFolderUrl] = useState<string | undefined>(project?.driveFolderUrl);
+  const [activeDriveUploadsFolderId, setActiveDriveUploadsFolderId] = useState<string | undefined>(project?.driveUploadsFolderId);
+  const [activeDriveReferencesFolderId, setActiveDriveReferencesFolderId] = useState<string | undefined>(project?.driveReferencesFolderId);
+  const [activeDriveFinalFilesFolderId, setActiveDriveFinalFilesFolderId] = useState<string | undefined>(project?.driveFinalFilesFolderId);
+  const [activeTrackingCode, setActiveTrackingCode] = useState<string | undefined>(project?.trackingCode);
+  const [uploadSuccessSummary, setUploadSuccessSummary] = useState<string>("");
 
   // 2. Wedding Details State (Boda)
   const [weddingNovio, setWeddingNovio] = useState("");
@@ -266,6 +277,13 @@ export default function ProjectForm({
   // Load existing project block if available
   useEffect(() => {
     if (project) {
+      setActiveProjectId(project.id);
+      setActiveDriveFolderId(project.driveFolderId);
+      setActiveDriveFolderUrl(project.driveFolderUrl);
+      setActiveDriveUploadsFolderId(project.driveUploadsFolderId);
+      setActiveDriveReferencesFolderId(project.driveReferencesFolderId);
+      setActiveDriveFinalFilesFolderId(project.driveFinalFilesFolderId);
+      setActiveTrackingCode(project.trackingCode);
       setClientName(project.clientName || "");
       setClientPhone(project.clientPhone || "");
       setClientEmail(project.clientEmail || "");
@@ -385,10 +403,219 @@ export default function ProjectForm({
     window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`, "_blank", "noopener,noreferrer");
   };
 
+  // Helper to ensure Drive folder exists
+  const ensureDriveFolder = async (): Promise<string | undefined> => {
+    let targetFolderId = activeDriveUploadsFolderId || activeDriveFolderId;
+    if (targetFolderId) return targetFolderId;
+
+    try {
+      setUploadingProgressText("Preparando carpeta en Google Drive...");
+      const now = new Date().toISOString();
+      const driveResult = await createOrGetDriveFolderForProject({
+        id: activeProjectId,
+        clientName: clientName.trim(),
+        clientPhone: clientPhone.trim(),
+        clientEmail: clientEmail.trim(),
+        type: selectedType,
+        status: project?.status || ProjectStatus.PENDIENTE,
+        createdAt: project?.createdAt || now,
+        updatedAt: now,
+        trackingCode: activeTrackingCode || project?.trackingCode,
+        serviceVariant: serviceVariant || undefined
+      });
+
+      if (driveResult.ok && driveResult.folderId) {
+        setActiveDriveFolderId(driveResult.folderId);
+        setActiveDriveFolderUrl(driveResult.folderUrl);
+        setActiveDriveUploadsFolderId(driveResult.uploadsFolderId);
+        setActiveDriveReferencesFolderId(driveResult.referencesFolderId);
+        setActiveDriveFinalFilesFolderId(driveResult.finalFilesFolderId);
+        return driveResult.uploadsFolderId || driveResult.folderId;
+      }
+    } catch (err) {
+      console.warn("Error creating/retrieving drive folder:", err);
+    }
+    return undefined;
+  };
+
+  // Helper to construct clean Project object
+  const constructProjectData = (
+    currentUploadedMedia: ProjectMediaFile[],
+    currentDriveStatus: "pending" | "ready" | "error" = "ready"
+  ): Project => {
+    const now = new Date().toISOString();
+    
+    // Extract only clean URLs (never data: base64) for wedding details
+    const cleanPhotoUrls = currentUploadedMedia
+      .map((f) => f.url)
+      .filter((u) => u && !u.startsWith("data:"));
+
+    let weddingDetailsObj: WeddingDetails | undefined = undefined;
+    let xvDetailsObj: XvDetails | undefined = undefined;
+    let menuDetailsObj: DigitalMenuDetails | undefined = undefined;
+    let otherDetailsObj: OtherDetails | undefined = undefined;
+
+    if (selectedType === ProjectType.BODA) {
+      weddingDetailsObj = {
+        novioName: weddingNovio,
+        noviaName: weddingNovia,
+        fecha: weddingFecha,
+        hora: weddingHora,
+        fraseEspecial: weddingFrase,
+        ceremoniaIglesia,
+        ceremoniaDireccion,
+        ceremoniaMapsUrl: ceremoniaMaps,
+        recepcionLocal,
+        recepcionDireccion,
+        recepcionMapsUrl: recepcionMaps,
+        confirmacionWhatsapp: confirmWeddingWhatsapp,
+        confirmacionFechaLimite: confirmWeddingLimite,
+        multimediaFotos: cleanPhotoUrls,
+        multimediaVideoUrl: weddingYoutube,
+        multimediaMusicaNombre: weddingMusica,
+        youtubeUrl: weddingYoutube,
+        colorPalette: isCustomPalette ? "Personalizado" : weddingPaletteName,
+        colorPaleteCustomValue: isCustomPalette ? weddingPaletteCustom : undefined,
+        visualStyle: weddingVisualStyle,
+        extras: {
+          cuentaRegresiva: isFeatureActive("cuenta_regresiva", currentPackage, selectedAddons),
+          galeriaFotos: isFeatureActive("galeria_fotos", currentPackage, selectedAddons),
+          historiaAmor: isFeatureActive("historia_amor", currentPackage, selectedAddons),
+          confirmacionWhatsapp: isFeatureActive("confirmacion_whatsapp", currentPackage, selectedAddons),
+          mesaRegalos: isFeatureActive("mesa_regalos", currentPackage, selectedAddons),
+          dressCode: isFeatureActive("dress_code", currentPackage, selectedAddons),
+          videoFondo: isFeatureActive("video_slideshow", currentPackage, selectedAddons),
+          animacionesPremium: isFeatureActive("animaciones_premium", currentPackage, selectedAddons)
+        }
+      };
+    } else if (selectedType === ProjectType.XV_ANOS) {
+      const hasMusica = isFeatureActive("musica", currentPackage, selectedAddons);
+      const hasGaleria = isFeatureActive("galeria_fotos", currentPackage, selectedAddons);
+      const hasCuentaRegresiva = isFeatureActive("cuenta_regresiva", currentPackage, selectedAddons);
+      const hasMaps = isFeatureActive("google_maps", currentPackage, selectedAddons);
+      const hasWhatsapp = isFeatureActive("confirmacion_whatsapp", currentPackage, selectedAddons);
+      const hasDressCode = isFeatureActive("dress_code", currentPackage, selectedAddons);
+      const hasMesaRegalos = isFeatureActive("mesa_regalos", currentPackage, selectedAddons);
+      const hasVideo = isFeatureActive("video_slideshow", currentPackage, selectedAddons);
+      const hasAnimaciones = isFeatureActive("animaciones_premium", currentPackage, selectedAddons);
+
+      xvDetailsObj = {
+        quinceaneraName: xvName,
+        fecha: xvFecha,
+        hora: xvHora,
+        lugar: xvLugar,
+        mapsUrl: hasMaps ? xvMaps : "",
+        musicaNombre: hasMusica ? xvMusica : "",
+        galleryEnabled: hasGaleria,
+        videoEnabled: hasVideo,
+        videoUrl: hasVideo ? xvYoutube : "",
+        colorPalette: xvPalette,
+        tematica: xvTematica,
+        confirmacionWhatsapp: hasWhatsapp ? xvConfirmWhatsapp : "",
+        cuentaRegresiva: hasCuentaRegresiva,
+        extras: { 
+          mesaRegalos: hasMesaRegalos, 
+          dressCode: hasDressCode, 
+          animacionesPremium: hasAnimaciones 
+        }
+      };
+    } else if (selectedType === ProjectType.CARTA_DIGITAL) {
+      menuDetailsObj = {
+        businessName: menuBusinessName || clientName,
+        logoUrl: menuLogoUrl,
+        address: menuAddress,
+        whatsapp: menuWhatsapp || clientPhone,
+        instagramUrl: menuInstagram,
+        items: menuItems,
+        designTheme: menuTheme
+      };
+    } else if (selectedType === ProjectType.CUMPLEANOS) {
+      otherDetailsObj = {
+        description: `Cumpleaños de ${bdayName || clientName} (${bdayAge || "Festejo"}). Fecha: ${bdayFecha} ${bdayHora}. Temática: ${bdayTematica}`,
+        requirements: `Lugar: ${bdayLugar}. Maps: ${bdayMaps}. Música: ${bdayMusica}. WhatsApp RSVP: ${bdayConfirmWhatsapp}`,
+        colorPalette: "Festivo",
+        attachmentsInfo: googleDriveUrl
+      };
+    } else if (selectedType === ProjectType.LANDING_PAGE) {
+      otherDetailsObj = {
+        description: `Landing Page para ${landingBrand || clientName}. Objetivo: ${landingGoal}`,
+        requirements: `WhatsApp: ${landingWhatsapp}. Redes: ${landingSocials}. Secciones: ${landingSections}`,
+        colorPalette: "Corporativo",
+        attachmentsInfo: googleDriveUrl
+      };
+    } else if (selectedType === ProjectType.SPOT) {
+      otherDetailsObj = {
+        description: `Spot Publicitario para ${spotCampaign || clientName}. Medio: ${spotTargetMedia}. Duración: ${spotDuration}`,
+        requirements: `Tono: ${spotTone}. Locutor: ${spotVoiceType}. Guion: ${spotScript}`,
+        colorPalette: "Publicidad",
+        attachmentsInfo: googleDriveUrl
+      };
+    } else if (selectedType === ProjectType.FOTO_VIDEO) {
+      otherDetailsObj = {
+        description: `Producción de Video: ${videoProjectName || clientName}. Formato: ${videoFormat}. Duración: ${videoDuration}`,
+        requirements: `Estilo: ${videoStyle}. Instrucciones: ${videoInstructions}`,
+        colorPalette: "Cinematográfico",
+        attachmentsInfo: googleDriveUrl
+      };
+    } else if (selectedType === ProjectType.DISENO_GRAFICO) {
+      otherDetailsObj = {
+        description: `Identidad & Branding: ${brandingBrandName || clientName}. Rubro: ${brandingIndustry}. Personalidad: ${brandingPersonality}`,
+        requirements: `Colores: ${brandingColors}. Requerimientos: ${brandingRequirements}`,
+        colorPalette: brandingColors || "Elegante",
+        attachmentsInfo: googleDriveUrl
+      };
+    } else if (selectedType === ProjectType.ARTES_MULTIMEDIA) {
+      otherDetailsObj = {
+        description: `Diseño / Artes Multimedia: ${artPieceType} (${artDimensions}). Titular: ${artTitle || clientName}. Estilo: ${artStyle}`,
+        requirements: `Textos / Copy: ${artCopy}. Formato: ${artDimensions}. Estilo visual: ${artStyle}. Colores: ${artColors || "A criterio del diseñador"}.`,
+        colorPalette: artColors || "Publicitario",
+        attachmentsInfo: googleDriveUrl
+      };
+    } else {
+      otherDetailsObj = {
+        description: otherDescription || `Solicitud para ${currentCatalogItem.title}`,
+        requirements: otherRequirements,
+        colorPalette: "Estándar",
+        attachmentsInfo: googleDriveUrl
+      };
+    }
+
+    return {
+      id: activeProjectId,
+      clientName: clientName.trim(),
+      clientPhone: clientPhone.trim(),
+      clientEmail: clientEmail.trim(),
+      type: selectedType,
+      status: project?.status || ProjectStatus.PENDIENTE,
+      createdAt: project?.createdAt || now,
+      updatedAt: now,
+      packageId: currentPackage?.id || selectedPackageId,
+      packageName: currentPackage?.name || "Básico",
+      totalPrice: totalPricePEN,
+      selectedAddonIds: selectedAddons,
+      serviceVariant: serviceVariant || undefined,
+      uploadedFiles: currentUploadedMedia,
+      googleDriveUrl: googleDriveUrl,
+      trackingCode: activeTrackingCode || project?.trackingCode,
+      driveFolderId: activeDriveFolderId,
+      driveFolderUrl: activeDriveFolderUrl,
+      driveUploadsFolderId: activeDriveUploadsFolderId,
+      driveReferencesFolderId: activeDriveReferencesFolderId,
+      driveFinalFilesFolderId: activeDriveFinalFilesFolderId,
+      driveStatus: currentDriveStatus,
+      weddingDetails: weddingDetailsObj,
+      xvDetails: xvDetailsObj,
+      menuDetails: menuDetailsObj,
+      otherDetails: otherDetailsObj,
+      generalNotes: isAdminContext ? generalNotes : (project?.generalNotes || "")
+    };
+  };
+
   // Submit Handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
+    setUploadSuccessSummary("");
 
     if (!clientName.trim()) {
       setFormError("Por favor, introduce el nombre completo del cliente o contacto.");
@@ -403,306 +630,239 @@ export default function ProjectForm({
     setUploadingProgressText("");
 
     try {
-      const now = new Date().toISOString();
-      const projectId = project?.id || (typeof crypto !== "undefined" && crypto.randomUUID ? `proj_${crypto.randomUUID()}` : `proj_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`);
+      let targetFolderId = await ensureDriveFolder();
+      let currentUploaded = [...uploadedFiles.filter((f) => f && f.url && !f.url.startsWith("data:"))];
+      let currentPending = [...pendingFiles];
 
-      // 1. Manejo seguro de subida a Google Drive de los archivos seleccionados
-      let driveFolderId = project?.driveFolderId;
-      let driveFolderUrl = project?.driveFolderUrl;
-      let driveUploadsFolderId = project?.driveUploadsFolderId;
-      let driveReferencesFolderId = project?.driveReferencesFolderId;
-      let driveFinalFilesFolderId = project?.driveFinalFilesFolderId;
-
-      let allUploadedFiles: ProjectMediaFile[] = [
-        ...uploadedFiles.filter((f) => f && f.url && !f.url.startsWith("data:"))
-      ];
-
-      let driveStatus: "pending" | "ready" | "error" = "ready";
-
-      if (pendingFiles.length > 0) {
-        setUploadingProgressText("Preparando carpeta en Google Drive...");
-
-        let targetFolderId = driveUploadsFolderId || driveFolderId;
-
-        // Si aún no tiene carpeta en Google Drive, solicitarla antes de subir los archivos
-        if (!targetFolderId) {
-          try {
-            const driveResult = await createOrGetDriveFolderForProject({
-              id: projectId,
-              clientName: clientName.trim(),
-              clientPhone: clientPhone.trim(),
-              clientEmail: clientEmail.trim(),
-              type: selectedType,
-              status: project?.status || ProjectStatus.PENDIENTE,
-              createdAt: project?.createdAt || now,
-              updatedAt: now,
-              trackingCode: project?.trackingCode,
-              serviceVariant: serviceVariant || undefined
-            });
-
-            if (driveResult.ok && driveResult.folderId) {
-              driveFolderId = driveResult.folderId;
-              driveFolderUrl = driveResult.folderUrl;
-              driveUploadsFolderId = driveResult.uploadsFolderId;
-              driveReferencesFolderId = driveResult.referencesFolderId;
-              driveFinalFilesFolderId = driveResult.finalFilesFolderId;
-              targetFolderId = driveResult.uploadsFolderId || driveResult.folderId;
-            } else {
-              driveStatus = "pending";
-            }
-          } catch (driveErr) {
-            console.warn("No se pudo pre-crear la carpeta de Drive:", driveErr);
-            driveStatus = "pending";
-          }
-        }
-
+      if (currentPending.length > 0) {
         if (targetFolderId) {
-          setUploadingProgressText(`Subiendo archivos a Google Drive (1 de ${pendingFiles.length})...`);
+          setUploadingProgressText(`Subiendo archivos a Google Drive (1 de ${currentPending.length})...`);
 
-          const { successfulFiles, failedCount } = await uploadPendingFilesToDrive(
-            targetFolderId,
-            pendingFiles,
-            (fileId, status, errorMsg) => {
-              setPendingFiles((prev) =>
-                prev.map((p) =>
-                  p.id === fileId ? { ...p, status, errorMessage: errorMsg } : p
-                )
-              );
-            },
-            (current, total, fileName) => {
-              setUploadingProgressText(`Subiendo archivo ${current} de ${total}... (${fileName})`);
+          for (let i = 0; i < currentPending.length; i++) {
+            const item = currentPending[i];
+
+            // Si ya está subido exitosamente, reutilizarlo
+            if (item.status === "success" && (item.uploadedResult || item.id)) {
+              if (item.uploadedResult && !currentUploaded.some((u) => u.id === item.uploadedResult!.id)) {
+                currentUploaded.push(item.uploadedResult);
+              }
+              continue;
             }
-          );
 
-          if (successfulFiles.length > 0) {
-            allUploadedFiles = [...allUploadedFiles, ...successfulFiles];
-            setUploadedFiles(allUploadedFiles);
-          }
+            setUploadingProgressText(`Subiendo archivo ${i + 1} de ${currentPending.length}... (${item.name})`);
+            currentPending = currentPending.map((p) => (p.id === item.id ? { ...p, status: "uploading" } : p));
+            setPendingFiles([...currentPending]);
 
-          if (failedCount > 0) {
-            driveStatus = "pending";
-            console.warn(`${failedCount} archivo(s) no se pudieron subir a Google Drive.`);
-          } else {
-            driveStatus = "ready";
+            const result = await uploadFileToDrive(targetFolderId, item.file, item.id);
+
+            if (result.ok && result.file) {
+              const uploadedFile = result.file;
+              currentUploaded = [...currentUploaded.filter((f) => f.id !== uploadedFile.id), uploadedFile];
+              currentPending = currentPending.map((p) =>
+                p.id === item.id
+                  ? { ...p, status: "success" as const, uploadedResult: uploadedFile, errorMessage: undefined }
+                  : p
+              );
+            } else {
+              currentPending = currentPending.map((p) =>
+                p.id === item.id
+                  ? { ...p, status: "error" as const, errorMessage: result.error || "Error al subir a Drive" }
+                  : p
+              );
+            }
+            setPendingFiles([...currentPending]);
+            setUploadedFiles([...currentUploaded]);
           }
         } else {
-          // Si el servidor de Drive no responde, guardamos solo metadata ligera (NUNCA Base64 en Firestore)
-          driveStatus = "pending";
-          const fallbackMedia: ProjectMediaFile[] = pendingFiles.map((p) => ({
-            id: p.id,
-            name: p.name,
-            size: p.size,
-            type: p.type,
-            url: "" // Sin base64
+          // El servidor de Drive no respondió
+          currentPending = currentPending.map((p) => ({
+            ...p,
+            status: "error" as const,
+            errorMessage: "No se pudo conectar a Google Drive"
           }));
-          allUploadedFiles = [...allUploadedFiles, ...fallbackMedia];
-        }
-      } else if (!driveFolderId) {
-        // Even with no pending files, prepare the Drive folder automatically
-        try {
-          setUploadingProgressText("Preparando carpeta en Google Drive...");
-          const driveResult = await createOrGetDriveFolderForProject({
-            id: projectId,
-            clientName: clientName.trim(),
-            clientPhone: clientPhone.trim(),
-            clientEmail: clientEmail.trim(),
-            type: selectedType,
-            status: project?.status || ProjectStatus.PENDIENTE,
-            createdAt: project?.createdAt || now,
-            updatedAt: now,
-            trackingCode: project?.trackingCode,
-            serviceVariant: serviceVariant || undefined
-          });
-
-          if (driveResult.ok && driveResult.folderId) {
-            driveFolderId = driveResult.folderId;
-            driveFolderUrl = driveResult.folderUrl;
-            driveUploadsFolderId = driveResult.uploadsFolderId;
-            driveReferencesFolderId = driveResult.referencesFolderId;
-            driveFinalFilesFolderId = driveResult.finalFilesFolderId;
-            driveStatus = "ready";
-          } else {
-            driveStatus = "pending";
-          }
-        } catch (err) {
-          console.warn("Could not create drive folder for empty uploads project:", err);
-          driveStatus = "pending";
+          setPendingFiles([...currentPending]);
         }
       }
 
       setUploadingProgressText("Guardando pedido en Firestore...");
 
-      let weddingDetailsObj: WeddingDetails | undefined = undefined;
-      let xvDetailsObj: XvDetails | undefined = undefined;
-      let menuDetailsObj: DigitalMenuDetails | undefined = undefined;
-      let otherDetailsObj: OtherDetails | undefined = undefined;
+      const failedCount = currentPending.filter((p) => p.status === "error").length;
+      const allDone = currentPending.length === 0 || currentPending.every((p) => p.status === "success");
 
-      // Extract only clean URLs (never data: base64) for wedding details
-      const cleanPhotoUrls = allUploadedFiles
-        .map((f) => f.url)
-        .filter((u) => u && !u.startsWith("data:"));
-
-      if (selectedType === ProjectType.BODA) {
-        weddingDetailsObj = {
-          novioName: weddingNovio,
-          noviaName: weddingNovia,
-          fecha: weddingFecha,
-          hora: weddingHora,
-          fraseEspecial: weddingFrase,
-          ceremoniaIglesia,
-          ceremoniaDireccion,
-          ceremoniaMapsUrl: ceremoniaMaps,
-          recepcionLocal,
-          recepcionDireccion,
-          recepcionMapsUrl: recepcionMaps,
-          confirmacionWhatsapp: confirmWeddingWhatsapp,
-          confirmacionFechaLimite: confirmWeddingLimite,
-          multimediaFotos: cleanPhotoUrls,
-          multimediaVideoUrl: weddingYoutube,
-          multimediaMusicaNombre: weddingMusica,
-          youtubeUrl: weddingYoutube,
-          colorPalette: isCustomPalette ? "Personalizado" : weddingPaletteName,
-          colorPaleteCustomValue: isCustomPalette ? weddingPaletteCustom : undefined,
-          visualStyle: weddingVisualStyle,
-          extras: {
-            cuentaRegresiva: isFeatureActive("cuenta_regresiva", currentPackage, selectedAddons),
-            galeriaFotos: isFeatureActive("galeria_fotos", currentPackage, selectedAddons),
-            historiaAmor: isFeatureActive("historia_amor", currentPackage, selectedAddons),
-            confirmacionWhatsapp: isFeatureActive("confirmacion_whatsapp", currentPackage, selectedAddons),
-            mesaRegalos: isFeatureActive("mesa_regalos", currentPackage, selectedAddons),
-            dressCode: isFeatureActive("dress_code", currentPackage, selectedAddons),
-            videoFondo: isFeatureActive("video_slideshow", currentPackage, selectedAddons),
-            animacionesPremium: isFeatureActive("animaciones_premium", currentPackage, selectedAddons)
-          }
-        };
-      } else if (selectedType === ProjectType.XV_ANOS) {
-        const hasMusica = isFeatureActive("musica", currentPackage, selectedAddons);
-        const hasGaleria = isFeatureActive("galeria_fotos", currentPackage, selectedAddons);
-        const hasCuentaRegresiva = isFeatureActive("cuenta_regresiva", currentPackage, selectedAddons);
-        const hasMaps = isFeatureActive("google_maps", currentPackage, selectedAddons);
-        const hasWhatsapp = isFeatureActive("confirmacion_whatsapp", currentPackage, selectedAddons);
-        const hasDressCode = isFeatureActive("dress_code", currentPackage, selectedAddons);
-        const hasMesaRegalos = isFeatureActive("mesa_regalos", currentPackage, selectedAddons);
-        const hasVideo = isFeatureActive("video_slideshow", currentPackage, selectedAddons);
-        const hasAnimaciones = isFeatureActive("animaciones_premium", currentPackage, selectedAddons);
-
-        xvDetailsObj = {
-          quinceaneraName: xvName,
-          fecha: xvFecha,
-          hora: xvHora,
-          lugar: xvLugar,
-          mapsUrl: hasMaps ? xvMaps : "",
-          musicaNombre: hasMusica ? xvMusica : "",
-          galleryEnabled: hasGaleria,
-          videoEnabled: hasVideo,
-          videoUrl: hasVideo ? xvYoutube : "",
-          colorPalette: xvPalette,
-          tematica: xvTematica,
-          confirmacionWhatsapp: hasWhatsapp ? xvConfirmWhatsapp : "",
-          cuentaRegresiva: hasCuentaRegresiva,
-          extras: { 
-            mesaRegalos: hasMesaRegalos, 
-            dressCode: hasDressCode, 
-            animacionesPremium: hasAnimaciones 
-          }
-        };
-      } else if (selectedType === ProjectType.CARTA_DIGITAL) {
-        menuDetailsObj = {
-          businessName: menuBusinessName || clientName,
-          logoUrl: menuLogoUrl,
-          address: menuAddress,
-          whatsapp: menuWhatsapp || clientPhone,
-          instagramUrl: menuInstagram,
-          items: menuItems,
-          designTheme: menuTheme
-        };
-      } else if (selectedType === ProjectType.CUMPLEANOS) {
-        otherDetailsObj = {
-          description: `Cumpleaños de ${bdayName || clientName} (${bdayAge || "Festejo"}). Fecha: ${bdayFecha} ${bdayHora}. Temática: ${bdayTematica}`,
-          requirements: `Lugar: ${bdayLugar}. Maps: ${bdayMaps}. Música: ${bdayMusica}. WhatsApp RSVP: ${bdayConfirmWhatsapp}`,
-          colorPalette: "Festivo",
-          attachmentsInfo: googleDriveUrl
-        };
-      } else if (selectedType === ProjectType.LANDING_PAGE) {
-        otherDetailsObj = {
-          description: `Landing Page para ${landingBrand || clientName}. Objetivo: ${landingGoal}`,
-          requirements: `WhatsApp: ${landingWhatsapp}. Redes: ${landingSocials}. Secciones: ${landingSections}`,
-          colorPalette: "Corporativo",
-          attachmentsInfo: googleDriveUrl
-        };
-      } else if (selectedType === ProjectType.SPOT) {
-        otherDetailsObj = {
-          description: `Spot Publicitario para ${spotCampaign || clientName}. Medio: ${spotTargetMedia}. Duración: ${spotDuration}`,
-          requirements: `Tono: ${spotTone}. Locutor: ${spotVoiceType}. Guion: ${spotScript}`,
-          colorPalette: "Publicidad",
-          attachmentsInfo: googleDriveUrl
-        };
-      } else if (selectedType === ProjectType.FOTO_VIDEO) {
-        otherDetailsObj = {
-          description: `Producción de Video: ${videoProjectName || clientName}. Formato: ${videoFormat}. Duración: ${videoDuration}`,
-          requirements: `Estilo: ${videoStyle}. Instrucciones: ${videoInstructions}`,
-          colorPalette: "Cinematográfico",
-          attachmentsInfo: googleDriveUrl
-        };
-      } else if (selectedType === ProjectType.DISENO_GRAFICO) {
-        otherDetailsObj = {
-          description: `Identidad & Branding: ${brandingBrandName || clientName}. Rubro: ${brandingIndustry}. Personalidad: ${brandingPersonality}`,
-          requirements: `Colores: ${brandingColors}. Requerimientos: ${brandingRequirements}`,
-          colorPalette: brandingColors || "Elegante",
-          attachmentsInfo: googleDriveUrl
-        };
-      } else if (selectedType === ProjectType.ARTES_MULTIMEDIA) {
-        otherDetailsObj = {
-          description: `Diseño / Artes Multimedia: ${artPieceType} (${artDimensions}). Titular: ${artTitle || clientName}. Estilo: ${artStyle}`,
-          requirements: `Textos / Copy: ${artCopy}. Formato: ${artDimensions}. Estilo visual: ${artStyle}. Colores: ${artColors || "A criterio del diseñador"}.`,
-          colorPalette: artColors || "Publicitario",
-          attachmentsInfo: googleDriveUrl
-        };
-      } else {
-        otherDetailsObj = {
-          description: otherDescription || `Solicitud para ${currentCatalogItem.title}`,
-          requirements: otherRequirements,
-          colorPalette: "Estándar",
-          attachmentsInfo: googleDriveUrl
-        };
-      }
-
-      const savedProject: Project = {
-        id: projectId,
-        clientName: clientName.trim(),
-        clientPhone: clientPhone.trim(),
-        clientEmail: clientEmail.trim(),
-        type: selectedType,
-        status: project?.status || ProjectStatus.PENDIENTE,
-        createdAt: project?.createdAt || now,
-        updatedAt: now,
-        packageId: currentPackage?.id || selectedPackageId,
-        packageName: currentPackage?.name || "Básico",
-        totalPrice: totalPricePEN,
-        selectedAddonIds: selectedAddons,
-        serviceVariant: serviceVariant || undefined,
-        uploadedFiles: allUploadedFiles,
-        googleDriveUrl: googleDriveUrl,
-        trackingCode: project?.trackingCode,
-        driveFolderId,
-        driveFolderUrl,
-        driveUploadsFolderId,
-        driveReferencesFolderId,
-        driveFinalFilesFolderId,
-        driveStatus,
-        weddingDetails: weddingDetailsObj,
-        xvDetails: xvDetailsObj,
-        menuDetails: menuDetailsObj,
-        otherDetails: otherDetailsObj,
-        generalNotes: isAdminContext ? generalNotes : (project?.generalNotes || "")
-      };
-
+      const savedProject = constructProjectData(currentUploaded, allDone ? "ready" : "pending");
       await onSave(savedProject);
-      onClose();
+
+      if (allDone) {
+        if (currentPending.length > 0) {
+          setUploadSuccessSummary(`¡Pedido registrado correctamente! ${currentPending.length} de ${currentPending.length} archivos subidos a Google Drive.`);
+          setTimeout(() => {
+            onClose();
+          }, 1200);
+        } else {
+          onClose();
+        }
+      } else {
+        const successCount = currentPending.filter((p) => p.status === "success").length;
+        setFormError(`Pedido registrado. ${successCount} de ${currentPending.length} archivos subidos correctamente. ${failedCount} archivo(s) necesita(n) reintentarse.`);
+      }
     } catch (err: any) {
       console.error("Error saving project:", err);
       const msg = err?.message || "Ocurrió un error al guardar el proyecto en Firestore. Por favor intenta nuevamente.";
       setFormError(msg);
+    } finally {
+      setIsSubmitting(false);
+      setUploadingProgressText("");
+    }
+  };
+
+  // Reintentar un archivo específico fallido
+  const handleRetrySingleFile = async (fileId: string) => {
+    const item = pendingFiles.find((p) => p.id === fileId);
+    if (!item) return;
+
+    setIsSubmitting(true);
+    setFormError("");
+    setUploadSuccessSummary("");
+    setUploadingProgressText(`Reintentando subida de "${item.name}"...`);
+
+    try {
+      const targetFolderId = await ensureDriveFolder();
+      if (!targetFolderId) {
+        setPendingFiles((prev) =>
+          prev.map((p) =>
+            p.id === fileId ? { ...p, status: "error", errorMessage: "No se pudo conectar a Google Drive" } : p
+          )
+        );
+        setFormError(`No se pudo conectar a Google Drive para subir "${item.name}".`);
+        setIsSubmitting(false);
+        setUploadingProgressText("");
+        return;
+      }
+
+      setPendingFiles((prev) =>
+        prev.map((p) => (p.id === fileId ? { ...p, status: "uploading" } : p))
+      );
+
+      const result = await uploadFileToDrive(targetFolderId, item.file, item.id);
+
+      if (result.ok && result.file) {
+        const uploadedFile = result.file;
+        const updatedUploaded = [...uploadedFiles.filter((f) => f.id !== uploadedFile.id), uploadedFile];
+        setUploadedFiles(updatedUploaded);
+
+        const updatedPending = pendingFiles.map((p) =>
+          p.id === fileId
+            ? { ...p, status: "success" as const, uploadedResult: uploadedFile, errorMessage: undefined }
+            : p
+        );
+        setPendingFiles(updatedPending);
+
+        const remainingErrors = updatedPending.filter((p) => p.status === "error").length;
+        const allCompleted = updatedPending.every((p) => p.status === "success");
+
+        const updatedProj = constructProjectData(
+          updatedUploaded,
+          allCompleted ? "ready" : "pending"
+        );
+        await onSave(updatedProj);
+
+        if (allCompleted) {
+          setUploadSuccessSummary(`¡Excelente! Todos los archivos (${updatedPending.length} de ${updatedPending.length}) se subieron a Google Drive.`);
+          setTimeout(() => {
+            onClose();
+          }, 1200);
+        } else {
+          setFormError(`Archivo "${item.name}" subido con éxito. Quedan ${remainingErrors} archivo(s) por reintentar.`);
+        }
+      } else {
+        setPendingFiles((prev) =>
+          prev.map((p) =>
+            p.id === fileId ? { ...p, status: "error", errorMessage: result.error || "Error al subir a Drive" } : p
+          )
+        );
+        setFormError(`Error al reintentar "${item.name}": ${result.error || "Fallo de conexión"}`);
+      }
+    } catch (err: any) {
+      setPendingFiles((prev) =>
+        prev.map((p) =>
+          p.id === fileId ? { ...p, status: "error", errorMessage: err?.message || "Error al subir" } : p
+        )
+      );
+      setFormError(`Error al subir "${item.name}": ${err?.message || "Fallo inesperado"}`);
+    } finally {
+      setIsSubmitting(false);
+      setUploadingProgressText("");
+    }
+  };
+
+  // Reintentar todos los archivos pendientes/fallidos
+  const handleRetryAllFailed = async () => {
+    const filesToRetry = pendingFiles.filter((p) => p.status !== "success");
+    if (filesToRetry.length === 0) return;
+
+    setIsSubmitting(true);
+    setFormError("");
+    setUploadSuccessSummary("");
+
+    try {
+      const targetFolderId = await ensureDriveFolder();
+      if (!targetFolderId) {
+        setFormError("No se pudo conectar a Google Drive. Por favor verifica la conexión.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      setUploadingProgressText(`Reintentando subida de ${filesToRetry.length} archivo(s)...`);
+
+      let currentUploaded = [...uploadedFiles];
+      let currentPending = [...pendingFiles];
+
+      for (let i = 0; i < filesToRetry.length; i++) {
+        const item = filesToRetry[i];
+        setUploadingProgressText(`Subiendo archivo ${i + 1} de ${filesToRetry.length}... (${item.name})`);
+        
+        currentPending = currentPending.map((p) => (p.id === item.id ? { ...p, status: "uploading" } : p));
+        setPendingFiles([...currentPending]);
+
+        const result = await uploadFileToDrive(targetFolderId, item.file, item.id);
+
+        if (result.ok && result.file) {
+          const uploadedFile = result.file;
+          currentUploaded = [...currentUploaded.filter((f) => f.id !== uploadedFile.id), uploadedFile];
+          currentPending = currentPending.map((p) =>
+            p.id === item.id
+              ? { ...p, status: "success" as const, uploadedResult: uploadedFile, errorMessage: undefined }
+              : p
+          );
+        } else {
+          currentPending = currentPending.map((p) =>
+            p.id === item.id
+              ? { ...p, status: "error" as const, errorMessage: result.error || "Error al subir" }
+              : p
+          );
+        }
+        setPendingFiles([...currentPending]);
+        setUploadedFiles([...currentUploaded]);
+      }
+
+      const failedCount = currentPending.filter((p) => p.status === "error").length;
+      const allDone = currentPending.every((p) => p.status === "success");
+
+      const savedProject = constructProjectData(currentUploaded, allDone ? "ready" : "pending");
+      await onSave(savedProject);
+
+      if (allDone) {
+        setUploadSuccessSummary(`¡Pedido registrado correctamente! ${currentPending.length} de ${currentPending.length} archivos subidos a Google Drive.`);
+        setTimeout(() => {
+          onClose();
+        }, 1200);
+      } else {
+        const successCount = currentPending.filter((p) => p.status === "success").length;
+        setFormError(`Pedido registrado. ${successCount} de ${currentPending.length} archivos subidos correctamente. ${failedCount} archivo(s) necesita(n) reintentarse.`);
+      }
+    } catch (err: any) {
+      console.error("Error retrying uploads:", err);
+      setFormError(err?.message || "Ocurrió un error al reintentar la subida.");
     } finally {
       setIsSubmitting(false);
       setUploadingProgressText("");
@@ -1950,6 +2110,9 @@ export default function ProjectForm({
               googleDriveUrl={googleDriveUrl}
               onChangeGoogleDriveUrl={setGoogleDriveUrl}
               isUploading={isSubmitting}
+              onRetryFile={handleRetrySingleFile}
+              onRetryAllFailed={handleRetryAllFailed}
+              uploadSummaryMessage={uploadSuccessSummary}
             />
 
             {/* SECTION 5: EXTRAS Y CARACTERÍSTICAS INCLUIDAS */}
@@ -2102,11 +2265,29 @@ export default function ProjectForm({
 
             {/* Action Buttons */}
             <div className="space-y-3 pt-6 border-t border-stone-200 dark:border-stone-800">
+              {uploadSuccessSummary && (
+                <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 rounded-2xl text-xs text-emerald-800 dark:text-emerald-300 flex items-start gap-2 animate-fade-in">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="font-medium leading-relaxed">{uploadSuccessSummary}</span>
+                </div>
+              )}
+
               {formError && (
-                <div className="p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-2xl text-xs text-red-700 dark:text-red-400 flex items-start gap-2">
+                <div className="p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-2xl text-xs text-red-700 dark:text-red-400 flex items-start gap-2 animate-fade-in">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   <span className="font-medium leading-relaxed">{formError}</span>
                 </div>
+              )}
+
+              {pendingFiles.some((p) => p.status === "error") && !isSubmitting && (
+                <button
+                  type="button"
+                  onClick={handleRetryAllFailed}
+                  className="w-full py-3.5 bg-red-600 hover:bg-red-700 active:scale-[0.99] text-white font-bold font-space text-xs uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Reintentar Archivos Fallidos ({pendingFiles.filter((p) => p.status === "error").length})</span>
+                </button>
               )}
 
               <button

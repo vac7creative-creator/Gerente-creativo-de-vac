@@ -244,7 +244,7 @@ export async function uploadFileToDrive(
 export async function uploadPendingFilesToDrive(
   folderId: string,
   pendingFiles: PendingUploadFile[],
-  onFileStatusUpdate?: (fileId: string, status: "uploading" | "success" | "error", errorMsg?: string) => void,
+  onFileStatusUpdate?: (fileId: string, status: "pending" | "uploading" | "success" | "error", errorMsg?: string, uploadedFile?: ProjectMediaFile) => void,
   onProgressStep?: (current: number, total: number, fileName: string) => void
 ): Promise<{ successfulFiles: ProjectMediaFile[]; failedCount: number }> {
   const successfulFiles: ProjectMediaFile[] = [];
@@ -254,8 +254,11 @@ export async function uploadPendingFilesToDrive(
   for (let i = 0; i < total; i++) {
     const item = pendingFiles[i];
 
-    if (item.status === "success" && item.uploadedResult) {
-      successfulFiles.push(item.uploadedResult);
+    // Si ya fue subido exitosamente en un intento previo, reutilizarlo sin volver a subir
+    if (item.status === "success" && (item.uploadedResult || item.id)) {
+      if (item.uploadedResult) {
+        successfulFiles.push(item.uploadedResult);
+      }
       continue;
     }
 
@@ -272,7 +275,7 @@ export async function uploadPendingFilesToDrive(
     if (result.ok && result.file) {
       successfulFiles.push(result.file);
       if (onFileStatusUpdate) {
-        onFileStatusUpdate(item.id, "success");
+        onFileStatusUpdate(item.id, "success", undefined, result.file);
       }
     } else {
       failedCount++;
