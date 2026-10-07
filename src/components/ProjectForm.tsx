@@ -417,8 +417,10 @@ export default function ProjectForm({
         ...uploadedFiles.filter((f) => f && f.url && !f.url.startsWith("data:"))
       ];
 
+      let driveStatus: "pending" | "ready" | "error" = "ready";
+
       if (pendingFiles.length > 0) {
-        setUploadingProgressText("Sincronizando con Google Drive...");
+        setUploadingProgressText("Preparando carpeta en Google Drive...");
 
         let targetFolderId = driveUploadsFolderId || driveFolderId;
 
@@ -445,14 +447,17 @@ export default function ProjectForm({
               driveReferencesFolderId = driveResult.referencesFolderId;
               driveFinalFilesFolderId = driveResult.finalFilesFolderId;
               targetFolderId = driveResult.uploadsFolderId || driveResult.folderId;
+            } else {
+              driveStatus = "pending";
             }
           } catch (driveErr) {
             console.warn("No se pudo pre-crear la carpeta de Drive:", driveErr);
+            driveStatus = "pending";
           }
         }
 
         if (targetFolderId) {
-          setUploadingProgressText(`Subiendo ${pendingFiles.length} archivo(s) a Google Drive...`);
+          setUploadingProgressText(`Subiendo archivos a Google Drive (1 de ${pendingFiles.length})...`);
 
           const { successfulFiles, failedCount } = await uploadPendingFilesToDrive(
             targetFolderId,
@@ -463,6 +468,9 @@ export default function ProjectForm({
                   p.id === fileId ? { ...p, status, errorMessage: errorMsg } : p
                 )
               );
+            },
+            (current, total, fileName) => {
+              setUploadingProgressText(`Subiendo archivo ${current} de ${total}... (${fileName})`);
             }
           );
 
@@ -472,10 +480,14 @@ export default function ProjectForm({
           }
 
           if (failedCount > 0) {
+            driveStatus = "pending";
             console.warn(`${failedCount} archivo(s) no se pudieron subir a Google Drive.`);
+          } else {
+            driveStatus = "ready";
           }
         } else {
           // Si el servidor de Drive no responde, guardamos solo metadata ligera (NUNCA Base64 en Firestore)
+          driveStatus = "pending";
           const fallbackMedia: ProjectMediaFile[] = pendingFiles.map((p) => ({
             id: p.id,
             name: p.name,
@@ -484,6 +496,37 @@ export default function ProjectForm({
             url: "" // Sin base64
           }));
           allUploadedFiles = [...allUploadedFiles, ...fallbackMedia];
+        }
+      } else if (!driveFolderId) {
+        // Even with no pending files, prepare the Drive folder automatically
+        try {
+          setUploadingProgressText("Preparando carpeta en Google Drive...");
+          const driveResult = await createOrGetDriveFolderForProject({
+            id: projectId,
+            clientName: clientName.trim(),
+            clientPhone: clientPhone.trim(),
+            clientEmail: clientEmail.trim(),
+            type: selectedType,
+            status: project?.status || ProjectStatus.PENDIENTE,
+            createdAt: project?.createdAt || now,
+            updatedAt: now,
+            trackingCode: project?.trackingCode,
+            serviceVariant: serviceVariant || undefined
+          });
+
+          if (driveResult.ok && driveResult.folderId) {
+            driveFolderId = driveResult.folderId;
+            driveFolderUrl = driveResult.folderUrl;
+            driveUploadsFolderId = driveResult.uploadsFolderId;
+            driveReferencesFolderId = driveResult.referencesFolderId;
+            driveFinalFilesFolderId = driveResult.finalFilesFolderId;
+            driveStatus = "ready";
+          } else {
+            driveStatus = "pending";
+          }
+        } catch (err) {
+          console.warn("Could not create drive folder for empty uploads project:", err);
+          driveStatus = "pending";
         }
       }
 
@@ -646,6 +689,7 @@ export default function ProjectForm({
         driveUploadsFolderId,
         driveReferencesFolderId,
         driveFinalFilesFolderId,
+        driveStatus,
         weddingDetails: weddingDetailsObj,
         xvDetails: xvDetailsObj,
         menuDetails: menuDetailsObj,

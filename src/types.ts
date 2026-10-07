@@ -167,6 +167,7 @@ export interface Project {
   driveUploadsFolderId?: string;
   driveReferencesFolderId?: string;
   driveFinalFilesFolderId?: string;
+  driveStatus?: "pending" | "ready" | "error";
   
   // Dynamic fields based on type
   weddingDetails?: WeddingDetails;

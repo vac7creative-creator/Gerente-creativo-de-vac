@@ -28,7 +28,9 @@ import {
   X,
   Folder,
   FolderPlus,
-  Loader2
+  Loader2,
+  RefreshCw,
+  HardDrive
 } from "lucide-react";
 
 interface ProjectCardProps {
@@ -164,30 +166,32 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         )}
       </div>
 
-      {/* Google Drive Integration (Admin Control) */}
+      {/* Google Drive Integration (Admin View) */}
       <div className="pt-1">
         {project.driveFolderUrl ? (
-          <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl text-xs font-mono">
+          <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-xl text-xs font-mono">
             <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 truncate pr-2">
               <Folder className="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-              <span className="text-[10px] uppercase font-space font-bold">Carpeta de Drive</span>
+              <span className="text-[10px] uppercase font-space font-bold">Google Drive</span>
             </div>
-            <a
-              href={project.driveFolderUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold font-space uppercase transition-colors shrink-0 cursor-pointer shadow-xs"
-              title="Abrir carpeta en Google Drive"
-            >
-              <span>Abrir carpeta</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
+            <div className="flex items-center gap-1.5">
+              <a
+                href={project.driveFolderUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold font-space uppercase transition-colors shrink-0 cursor-pointer shadow-xs"
+                title="Abrir carpeta del proyecto en Google Drive"
+              >
+                <span>Abrir carpeta</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
           </div>
         ) : (
-          <div className="flex items-center justify-between bg-stone-50 dark:bg-stone-900/60 border border-stone-200/80 dark:border-stone-800 px-3 py-1.5 rounded-xl text-xs">
-            <div className="flex items-center gap-1.5 text-stone-500 dark:text-stone-400">
-              <Folder className="w-3.5 h-3.5 shrink-0 opacity-60" />
-              <span className="text-[10px] font-space">Drive pendiente</span>
+          <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/25 px-3 py-1.5 rounded-xl text-xs">
+            <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300">
+              <Folder className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+              <span className="text-[10px] font-space font-bold uppercase">Drive pendiente</span>
             </div>
             {onCreateDriveFolder && (
               <button
@@ -202,16 +206,17 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                 }}
                 disabled={isCreatingDrive}
                 className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-lg text-[10px] font-bold font-space uppercase transition-colors shrink-0 cursor-pointer disabled:opacity-60"
+                title="Reintentar creación de carpeta en Google Drive"
               >
                 {isCreatingDrive ? (
                   <>
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    <span>Creando...</span>
+                    <span>Reintentando...</span>
                   </>
                 ) : (
                   <>
-                    <FolderPlus className="w-3 h-3" />
-                    <span>Crear carpeta</span>
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Reintentar</span>
                   </>
                 )}
               </button>

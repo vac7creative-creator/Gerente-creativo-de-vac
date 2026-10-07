@@ -393,6 +393,7 @@ export async function createPublicOrderWithTracking(project: Project): Promise<{
     status: ProjectStatus.PENDIENTE,
     createdAt: project.createdAt || now,
     updatedAt: now,
+    driveStatus: project.driveStatus || (driveResult?.ok && driveResult.folderId ? "ready" : (project.driveFolderId ? "ready" : "pending")),
     ...(driveResult?.ok && driveResult.folderId ? {
       driveFolderId: driveResult.folderId,
       driveFolderUrl: driveResult.folderUrl,
@@ -465,6 +466,7 @@ export async function createDriveFolderForExistingProject(
     driveUploadsFolderId: result.uploadsFolderId,
     driveReferencesFolderId: result.referencesFolderId,
     driveFinalFilesFolderId: result.finalFilesFolderId,
+    driveStatus: "ready",
     updatedAt: new Date().toISOString()
   };
 

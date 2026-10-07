@@ -312,10 +312,10 @@ export default function App() {
         const assignedCode = typeof orderResult === "string" ? orderResult : orderResult.trackingCode;
         setNewlyCreatedCodeModal(assignedCode);
         if (orderResult && typeof orderResult === "object") {
-          if (orderResult.driveError) {
-            showToast("Tu pedido fue registrado correctamente. La carpeta de archivos se terminará de preparar automáticamente.", "info");
-          } else if (orderResult.driveFolderUrl) {
-            showToast("¡Pedido y carpeta de Google Drive vinculados con éxito!", "success");
+          if (updatedProj.driveStatus === "pending" || orderResult.driveError) {
+            showToast("Tu pedido fue registrado. Los archivos se terminarán de sincronizar automáticamente en Google Drive.", "info");
+          } else if (orderResult.driveFolderUrl || updatedProj.driveFolderUrl) {
+            showToast("¡Pedido y carpeta en Google Drive generados automáticamente con éxito!", "success");
           } else {
             showToast("¡Pedido registrado exitosamente!", "success");
           }

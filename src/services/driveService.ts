@@ -107,6 +107,82 @@ export function readFileAsBase64(file: File): Promise<string> {
 }
 
 /**
+ * Helper para optimizar imágenes muy pesadas (>6MB) antes del transporte en Base64
+ * sin deformar la imagen ni degradar agresivamente la calidad (0.92 JPEG).
+ */
+export async function optimizeImageFileIfNeeded(file: File): Promise<File> {
+  // Si no es imagen o pesa menos de 5MB, mantener intacto el original
+  if (!file.type.startsWith("image/") || file.size <= 5 * 1024 * 1024) {
+    return file;
+  }
+
+  // Si es GIF o SVG, no comprimir con canvas
+  if (file.type === "image/gif" || file.type === "image/svg+xml") {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const maxDimension = 3840; // 4K resolution limit
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+          return resolve(file);
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob && blob.size < file.size) {
+              const optimizedFile = new File([blob], file.name, {
+                type: "image/jpeg",
+                lastModified: Date.now()
+              });
+              resolve(optimizedFile);
+            } else {
+              resolve(file);
+            }
+          },
+          "image/jpeg",
+          0.92
+        );
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(file);
+      };
+
+      img.src = objectUrl;
+    } catch {
+      resolve(file);
+    }
+  });
+}
+
+/**
  * Sube un archivo a Google Drive a través del endpoint seguro /api/drive-upload
  * El Base64 es solo transitorio y NUNCA se persiste en Firestore.
  */
@@ -116,7 +192,8 @@ export async function uploadFileToDrive(
   fileCustomId?: string
 ): Promise<DriveUploadResult> {
   try {
-    const fileBase64 = await readFileAsBase64(file);
+    const fileToUpload = await optimizeImageFileIfNeeded(file);
+    const fileBase64 = await readFileAsBase64(fileToUpload);
 
     const response = await fetch("/api/drive-upload", {
       method: "POST",
@@ -125,8 +202,8 @@ export async function uploadFileToDrive(
       },
       body: JSON.stringify({
         folderId,
-        fileName: file.name,
-        mimeType: file.type || "application/octet-stream",
+        fileName: fileToUpload.name,
+        mimeType: fileToUpload.type || "application/octet-stream",
         fileData: fileBase64
       })
     });
@@ -162,20 +239,28 @@ export async function uploadFileToDrive(
 }
 
 /**
- * Sube un lote de archivos pendientes a la carpeta de Drive del proyecto
+ * Sube un lote de archivos pendientes a la carpeta de Drive del proyecto uno por uno
  */
 export async function uploadPendingFilesToDrive(
   folderId: string,
   pendingFiles: PendingUploadFile[],
-  onFileStatusUpdate?: (fileId: string, status: "uploading" | "success" | "error", errorMsg?: string) => void
+  onFileStatusUpdate?: (fileId: string, status: "uploading" | "success" | "error", errorMsg?: string) => void,
+  onProgressStep?: (current: number, total: number, fileName: string) => void
 ): Promise<{ successfulFiles: ProjectMediaFile[]; failedCount: number }> {
   const successfulFiles: ProjectMediaFile[] = [];
   let failedCount = 0;
+  const total = pendingFiles.length;
 
-  for (const item of pendingFiles) {
+  for (let i = 0; i < total; i++) {
+    const item = pendingFiles[i];
+
     if (item.status === "success" && item.uploadedResult) {
       successfulFiles.push(item.uploadedResult);
       continue;
+    }
+
+    if (onProgressStep) {
+      onProgressStep(i + 1, total, item.name);
     }
 
     if (onFileStatusUpdate) {
