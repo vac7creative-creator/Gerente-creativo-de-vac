@@ -200,13 +200,19 @@ export default function HeroFeaturedCarousel({ onSelectService }: HeroFeaturedCa
         <div className="absolute bottom-0 left-0 right-0 z-20 p-5 sm:p-7 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
             <div className="space-y-1 max-w-md">
-              <span className="text-[10px] uppercase font-space tracking-[0.2em] text-amber-400/90 font-semibold block">
-                Destacado V.A.C.
-              </span>
-              <h3 className="font-serif font-bold text-white text-xl sm:text-2xl md:text-3xl tracking-tight leading-tight">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-bold tracking-[0.18em] text-amber-400 block">
+                  Destacado V.A.C.
+                </span>
+                <span className="text-stone-500 text-xs">·</span>
+                <span className="font-serif italic text-xs text-amber-200/90 tracking-wide">
+                  Historias que inspiran
+                </span>
+              </div>
+              <h3 className="font-extrabold text-white text-xl sm:text-2xl md:text-3xl tracking-tight leading-tight">
                 {currentSlide.service.title}
               </h3>
-              <p className="text-xs text-stone-300 font-light line-clamp-1 hidden sm:block">
+              <p className="text-xs text-stone-300 font-normal line-clamp-1 hidden sm:block">
                 {currentSlide.service.subtitle}
               </p>
             </div>

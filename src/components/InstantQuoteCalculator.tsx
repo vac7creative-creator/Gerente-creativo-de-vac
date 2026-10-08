@@ -106,12 +106,12 @@ export default function InstantQuoteCalculator({
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-stone-200/60 dark:border-stone-800">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-space font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400">
+            <span className="text-xs font-bold uppercase tracking-[0.16em] text-amber-700 dark:text-amber-400">
               Cotizador Inteligente · V.A.C. Creative
             </span>
           </div>
 
-          <h3 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 dark:text-stone-50 tracking-tight">
+          <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-stone-900 dark:text-stone-50 tracking-[-0.03em]">
             Calcula la Inversión de tu Proyecto
           </h3>
           <p className="text-sm text-stone-600 dark:text-stone-300 font-normal">

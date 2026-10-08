@@ -550,11 +550,11 @@ export default function App() {
             />
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-serif font-bold tracking-tight text-stone-950 dark:text-stone-50 text-xl">
+                <span className="font-extrabold tracking-tight text-stone-950 dark:text-stone-50 text-xl font-sans">
                   V.A.C. Creative
                 </span>
               </div>
-              <p className="text-xs text-stone-600 dark:text-stone-300 font-normal hidden sm:block">
+              <p className="text-xs text-stone-500 dark:text-stone-400 font-medium hidden sm:block">
                 Diseño Digital & Experiencias de Alta Costura
               </p>
             </div>
@@ -649,14 +649,14 @@ export default function App() {
                     </span>
                   </div>
 
-                  {/* Titular Principal */}
-                  <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-serif font-bold text-stone-950 dark:text-white tracking-tight leading-[1.08]">
+                  {/* Titular Principal: Manrope 800, tracking compacto, sin cursivas */}
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] font-extrabold text-stone-950 dark:text-white tracking-[-0.035em] leading-[1.08]">
                     Cotiza tu próximo <br />
-                    <span className="font-normal italic text-amber-600 dark:text-amber-400">proyecto creativo</span>
+                    <span className="font-extrabold text-amber-600 dark:text-amber-400">proyecto creativo</span>
                   </h1>
 
-                  {/* Texto Secundario Directo y Comercial */}
-                  <p className="text-stone-600 dark:text-stone-300 text-sm sm:text-base font-light leading-relaxed max-w-xl">
+                  {/* Texto Secundario Directo y Comercial: Manrope 400/500 */}
+                  <p className="text-stone-600 dark:text-stone-300 text-sm sm:text-base font-normal leading-relaxed max-w-xl tracking-[-0.01em]">
                     Explora servicios, compara paquetes, conoce precios estimados e inicia tu proyecto con V.A.C. Creative desde un solo lugar.
                   </p>
 
@@ -665,7 +665,7 @@ export default function App() {
                     {/* Botón Principal Dominante: Cotizar ahora */}
                     <button
                       onClick={() => setClientTab("quote")}
-                      className="px-7 py-3.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold font-space text-xs uppercase tracking-[0.18em] rounded-full transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5 cursor-pointer flex items-center justify-center gap-2"
+                      className="px-7 py-3.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs uppercase tracking-[0.12em] rounded-full transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5 cursor-pointer flex items-center justify-center gap-2"
                     >
                       <span>Cotizar ahora</span>
                       <ArrowRight className="w-4 h-4" />
@@ -678,7 +678,7 @@ export default function App() {
                         const el = document.getElementById("catalog-section-anchor");
                         if (el) el.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="px-6 py-3.5 bg-stone-100 hover:bg-stone-200 text-stone-900 border border-stone-300 dark:bg-stone-900 dark:hover:bg-stone-800 dark:text-stone-100 dark:border-stone-700 font-bold font-space text-xs uppercase tracking-[0.15em] rounded-full transition-all cursor-pointer flex items-center justify-center gap-2"
+                      className="px-6 py-3.5 bg-stone-100 hover:bg-stone-200 text-stone-900 border border-stone-300 dark:bg-stone-900 dark:hover:bg-stone-800 dark:text-stone-100 dark:border-stone-700 font-bold text-xs uppercase tracking-[0.1em] rounded-full transition-all cursor-pointer flex items-center justify-center gap-2"
                     >
                       <span>Explorar servicios</span>
                     </button>
@@ -686,7 +686,7 @@ export default function App() {
                     {/* Botón Tercero: Rastrear proyecto */}
                     <button
                       onClick={() => setClientTab("tracker")}
-                      className="px-5 py-3.5 text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-white font-space text-xs uppercase tracking-wider font-semibold cursor-pointer transition-colors flex items-center justify-center gap-1.5"
+                      className="px-5 py-3.5 text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-white text-xs uppercase tracking-wider font-semibold cursor-pointer transition-colors flex items-center justify-center gap-1.5"
                     >
                       <Compass className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                       <span>Rastrear proyecto</span>
@@ -733,7 +733,7 @@ export default function App() {
           <div className="flex items-center justify-start gap-3 border-b border-stone-200/80 dark:border-stone-800 pb-4 overflow-x-auto">
             <button
               onClick={() => setClientTab("catalog")}
-              className={`px-5 py-2.5 rounded-full text-xs font-bold font-space uppercase tracking-[0.15em] transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+              className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-[0.08em] transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
                 clientTab === "catalog"
                   ? "bg-stone-950 text-white dark:bg-amber-400 dark:text-stone-950 shadow-md"
                   : "bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-white border border-stone-200 dark:border-stone-800"
@@ -744,7 +744,7 @@ export default function App() {
 
             <button
               onClick={() => setClientTab("quote")}
-              className={`px-5 py-2.5 rounded-full text-xs font-bold font-space uppercase tracking-[0.15em] transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+              className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-[0.08em] transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
                 clientTab === "quote"
                   ? "bg-stone-950 text-white dark:bg-amber-400 dark:text-stone-950 shadow-md"
                   : "bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-white border border-stone-200 dark:border-stone-800"
@@ -755,7 +755,7 @@ export default function App() {
 
             <button
               onClick={() => setClientTab("tracker")}
-              className={`px-5 py-2.5 rounded-full text-xs font-bold font-space uppercase tracking-[0.15em] transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+              className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-[0.08em] transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
                 clientTab === "tracker"
                   ? "bg-stone-950 text-white dark:bg-amber-400 dark:text-stone-950 shadow-md"
                   : "bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-white border border-stone-200 dark:border-stone-800"
@@ -773,18 +773,18 @@ export default function App() {
               <div className="space-y-8">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-stone-200/80 dark:border-stone-800 pb-5">
                   <div className="space-y-1">
-                    <span className="text-[10px] font-space font-bold uppercase tracking-[0.25em] text-amber-700 dark:text-amber-400">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-400">
                       Invitaciones Digitales · Modelos Interactivos
                     </span>
-                    <h2 className="text-3xl sm:text-4xl font-serif font-bold text-stone-950 dark:text-stone-50 tracking-tight">
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-stone-950 dark:text-stone-50 tracking-[-0.03em]">
                       Colección para Momentos Trascendentes
                     </h2>
                   </div>
                   <div className="space-y-1 text-right sm:text-left">
-                    <p className="text-xs text-stone-500 dark:text-stone-400 font-light max-w-sm">
+                    <p className="text-xs text-stone-500 dark:text-stone-400 font-normal max-w-sm">
                       Explora nuestros estilos de referencia y anatomía interactiva. Cada proyecto se personaliza a la medida de tu celebración o negocio.
                     </p>
-                    <p className="text-[11px] font-space font-bold text-amber-700 dark:text-amber-400 pt-1">
+                    <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 pt-1">
                       Cada ficha incluye muestras de autor y niveles de acabado.
                     </p>
                   </div>
@@ -814,10 +814,10 @@ export default function App() {
                         </div>
 
                         <div className="absolute bottom-4 left-4 right-4">
-                          <span className="text-[10px] uppercase font-space tracking-[0.2em] text-stone-300 font-medium">
+                          <span className="text-[10px] uppercase tracking-[0.16em] text-stone-300 font-semibold">
                             Serie {String(idx + 1).padStart(2, "0")}
                           </span>
-                          <h3 className="font-serif font-bold text-white text-2xl tracking-tight leading-tight">
+                          <h3 className="font-extrabold text-white text-xl sm:text-2xl tracking-[-0.02em] leading-tight">
                             {service.title}
                           </h3>
                         </div>
@@ -826,14 +826,14 @@ export default function App() {
                       {/* Details Area */}
                       <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
                         <div className="space-y-2">
-                          <p className="text-xs text-stone-600 dark:text-stone-400 font-light leading-relaxed line-clamp-2">
+                          <p className="text-xs text-stone-600 dark:text-stone-400 font-normal leading-relaxed line-clamp-2">
                             {service.subtitle}
                           </p>
                           {(() => {
                             const samplesCount = PORTFOLIO_ITEMS.filter(item => item.serviceType === service.type).length;
                             if (samplesCount > 0) {
                               return (
-                                <div className="flex items-center gap-1.5 text-[11px] font-space text-amber-700 dark:text-amber-400 font-semibold pt-1">
+                                <div className="flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-400 font-semibold pt-1">
                                   <Sparkles className="w-3.5 h-3.5" />
                                   <span>{samplesCount} {samplesCount === 1 ? "muestra de referencia" : "muestras de referencia"}</span>
                                 </div>
@@ -864,10 +864,10 @@ export default function App() {
               {/* SERVICIOS COMPLEMENTARIOS: PRODUCCIÓN & BRANDING */}
               <div className="space-y-8 pt-8 border-t border-stone-200/80 dark:border-stone-800">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-space font-bold uppercase tracking-[0.25em] text-amber-700 dark:text-amber-400">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-400">
                     Servicios de Producción
                   </span>
-                  <h2 className="text-3xl font-serif font-bold text-stone-950 dark:text-stone-50 tracking-tight">
+                  <h2 className="text-2xl sm:text-3xl font-extrabold text-stone-950 dark:text-stone-50 tracking-[-0.03em]">
                     Dirección de Arte & Multimedia
                   </h2>
                 </div>
@@ -889,16 +889,16 @@ export default function App() {
                         </div>
 
                         <div className="space-y-1.5">
-                          <h3 className="text-lg font-serif font-bold text-stone-900 dark:text-stone-100 group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
+                          <h3 className="text-base font-bold text-stone-900 dark:text-stone-100 group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors tracking-tight">
                             {cat.title}
                           </h3>
-                          <p className="text-xs text-stone-500 dark:text-stone-400 line-clamp-3 font-light leading-relaxed">
+                          <p className="text-xs text-stone-500 dark:text-stone-400 line-clamp-3 font-normal leading-relaxed">
                             {cat.subtitle}
                           </p>
                         </div>
                       </div>
 
-                      <div className="pt-4 border-t border-stone-100 dark:border-stone-800/80 flex items-center justify-between text-xs font-space font-medium text-stone-500 dark:text-stone-400">
+                      <div className="pt-4 border-t border-stone-100 dark:border-stone-800/80 flex items-center justify-between text-xs font-medium text-stone-500 dark:text-stone-400">
                         <span className="font-mono font-bold text-amber-700 dark:text-amber-400">
                           {(() => {
                             const srv = SERVICES_CATALOG_DATA.find(s => s.type === cat.type);
@@ -937,13 +937,13 @@ export default function App() {
                   <Compass className="w-6 h-6" />
                 </div>
                 <div className="space-y-2">
-                  <span className="text-[10px] font-space font-bold uppercase tracking-[0.25em] text-amber-700 dark:text-amber-400">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-400">
                     Seguimiento Privado por Código
                   </span>
-                  <h3 className="font-serif font-bold text-3xl sm:text-4xl text-stone-900 dark:text-stone-100 tracking-tight">
+                  <h3 className="font-extrabold text-2xl sm:text-3xl text-stone-900 dark:text-stone-100 tracking-[-0.03em]">
                     Consulta el Estado de tu Invitación
                   </h3>
-                  <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 font-light leading-relaxed max-w-lg mx-auto">
+                  <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 font-normal leading-relaxed max-w-lg mx-auto">
                     Introduce tu código secreto de seguimiento (ej. <code className="font-mono text-amber-700 dark:text-amber-400">VAC-XXXX-...</code>) proporcionado al registrar tu pedido.
                   </p>
                 </div>

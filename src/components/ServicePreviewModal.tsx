@@ -83,10 +83,10 @@ export default function ServicePreviewModal({
           </div>
 
           <div className="relative z-10 space-y-3">
-            <span className="text-[10px] bg-amber-500 text-stone-950 font-bold uppercase tracking-[0.2em] font-space px-3 py-1 rounded-full inline-block">
+            <span className="text-[10px] bg-amber-500 text-stone-950 font-bold uppercase tracking-[0.16em] px-3 py-1 rounded-full inline-block">
               V.A.C. Creative Edition
             </span>
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-white tracking-tight leading-tight drop-shadow-md">
+            <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-[-0.03em] leading-tight drop-shadow-md">
               {service.title}
             </h2>
             <p className="text-stone-200 text-xs md:text-sm leading-relaxed drop-shadow-sm font-normal">

@@ -112,11 +112,11 @@ export default function CategoryQuickBar({ onSelectService, onSelectProjectType 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-          <h2 className="text-xs sm:text-sm font-space font-bold uppercase tracking-[0.2em] text-stone-900 dark:text-stone-100">
+          <h2 className="text-xs sm:text-sm font-extrabold uppercase tracking-[0.12em] text-stone-900 dark:text-stone-100">
             ¿Qué quieres crear?
           </h2>
         </div>
-        <span className="text-[11px] text-stone-500 dark:text-stone-400 font-mono hidden sm:inline">
+        <span className="text-[11px] text-stone-500 dark:text-stone-400 font-medium hidden sm:inline">
           Acceso directo a fichas & paquetes
         </span>
       </div>
@@ -131,14 +131,14 @@ export default function CategoryQuickBar({ onSelectService, onSelectProjectType 
               onClick={() => handleClick(cat)}
               className="group shrink-0 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white dark:bg-[#141311] border border-stone-200/80 dark:border-stone-800/80 hover:border-amber-500/60 dark:hover:border-amber-400/60 shadow-sm hover:shadow-md transition-all cursor-pointer text-left"
             >
-              <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-stone-950 transition-all">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 flex items-center justify-center group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-stone-950 transition-all">
                 <Icon className="w-4 h-4" />
               </div>
               <div className="space-y-0.5">
-                <span className="text-xs font-space font-bold text-stone-900 dark:text-stone-100 group-hover:text-amber-600 dark:group-hover:text-amber-400 block whitespace-nowrap transition-colors">
+                <span className="text-xs font-bold text-stone-900 dark:text-stone-100 group-hover:text-amber-600 dark:group-hover:text-amber-400 block whitespace-nowrap transition-colors tracking-tight">
                   {cat.label}
                 </span>
-                <span className="text-[10px] text-stone-500 dark:text-stone-400 font-mono block whitespace-nowrap">
+                <span className="text-[10px] text-stone-500 dark:text-stone-400 font-medium block whitespace-nowrap">
                   {cat.tag}
                 </span>
               </div>
