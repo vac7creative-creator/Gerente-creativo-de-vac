@@ -1228,7 +1228,7 @@ export default function ProjectForm({
                       type="text"
                       value={confirmWeddingWhatsapp}
                       onChange={(e) => setConfirmWeddingWhatsapp(e.target.value)}
-                      placeholder="Ej. +51 912345678"
+                      placeholder="Ej. +51 932350348"
                       className="w-full h-12 px-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 text-sm focus:outline-none"
                     />
                   </div>
@@ -1615,7 +1615,7 @@ export default function ProjectForm({
                       type="text"
                       value={bdayConfirmWhatsapp}
                       onChange={(e) => setBdayConfirmWhatsapp(e.target.value)}
-                      placeholder="Ej. +51 912345678"
+                      placeholder="Ej. +51 932350348"
                       className="w-full h-12 px-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-sm focus:outline-none"
                     />
                   </div>

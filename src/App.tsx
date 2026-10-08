@@ -40,6 +40,8 @@ import ServicePreviewModal from "./components/ServicePreviewModal";
 import InstantQuoteCalculator from "./components/InstantQuoteCalculator";
 import AdminLoginModal from "./components/AdminLoginModal";
 import PortfolioSampleModal from "./components/PortfolioSampleModal";
+import HeroFeaturedCarousel from "./components/HeroFeaturedCarousel";
+import CategoryQuickBar from "./components/CategoryQuickBar";
 
 // Data
 import { SERVICES_CATALOG, MAIN_CATEGORIES, SERVICES_CATALOG_DATA } from "./data/servicesCatalog";
@@ -623,79 +625,109 @@ export default function App() {
         /* HIGH-END EDITORIAL CLIENT EXPERIENCE */
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16 space-y-16 animate-fade-in">
           
-          {/* HIGH-END EDITORIAL HERO SPREAD */}
-          <div className="relative overflow-hidden bg-white text-stone-900 dark:bg-gradient-to-br dark:from-stone-950 dark:via-[#161412] dark:to-stone-950 dark:text-stone-100 rounded-3xl p-8 sm:p-12 md:p-16 border border-stone-200/80 dark:border-stone-800 shadow-xl shadow-stone-200/40 dark:shadow-2xl">
-            
-            {/* Background subtle art mark */}
-            <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-[0.03] dark:opacity-5 pointer-events-none select-none hidden lg:block overflow-hidden">
-              <span className="font-serif text-[18rem] leading-none text-stone-950 dark:text-white italic">V</span>
+          {/* HERO DINÁMICO EDITORIAL DE 2 COLUMNAS */}
+          <div className="space-y-8">
+            <div className="relative overflow-hidden bg-white text-stone-900 dark:bg-gradient-to-br dark:from-stone-950 dark:via-[#161412] dark:to-stone-950 dark:text-stone-100 rounded-3xl p-6 sm:p-10 md:p-12 lg:p-14 border border-stone-200/80 dark:border-stone-800 shadow-xl shadow-stone-200/40 dark:shadow-2xl">
+              
+              {/* Marca sutil de fondo */}
+              <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-[0.03] dark:opacity-5 pointer-events-none select-none hidden lg:block overflow-hidden">
+                <span className="font-serif text-[20rem] leading-none text-stone-950 dark:text-white italic">V</span>
+              </div>
+
+              {/* Grid de 2 Columnas (Escritorio: Izquierda Textos/Acciones, Derecha Carrusel) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center relative z-10">
+                
+                {/* Columna Izquierda: Mensaje y Acciones Claras */}
+                <div className="lg:col-span-6 space-y-6">
+                  {/* Badge de Marca */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-800 dark:text-amber-300 font-mono text-[10px] uppercase font-bold tracking-wider">
+                      Portal V.A.C. Creative
+                    </span>
+                    <span className="text-[11px] text-stone-500 dark:text-stone-400 font-space font-medium">
+                      Atelier Multimedia & Diseño
+                    </span>
+                  </div>
+
+                  {/* Titular Principal */}
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-serif font-bold text-stone-950 dark:text-white tracking-tight leading-[1.08]">
+                    Cotiza tu próximo <br />
+                    <span className="font-normal italic text-amber-600 dark:text-amber-400">proyecto creativo</span>
+                  </h1>
+
+                  {/* Texto Secundario Directo y Comercial */}
+                  <p className="text-stone-600 dark:text-stone-300 text-sm sm:text-base font-light leading-relaxed max-w-xl">
+                    Explora servicios, compara paquetes, conoce precios estimados e inicia tu proyecto con V.A.C. Creative desde un solo lugar.
+                  </p>
+
+                  {/* Botones Principales de Acción */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2">
+                    {/* Botón Principal Dominante: Cotizar ahora */}
+                    <button
+                      onClick={() => setClientTab("quote")}
+                      className="px-7 py-3.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold font-space text-xs uppercase tracking-[0.18em] rounded-full transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5 cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <span>Cotizar ahora</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+
+                    {/* Botón Secundario: Explorar servicios */}
+                    <button
+                      onClick={() => {
+                        setClientTab("catalog");
+                        const el = document.getElementById("catalog-section-anchor");
+                        if (el) el.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="px-6 py-3.5 bg-stone-100 hover:bg-stone-200 text-stone-900 border border-stone-300 dark:bg-stone-900 dark:hover:bg-stone-800 dark:text-stone-100 dark:border-stone-700 font-bold font-space text-xs uppercase tracking-[0.15em] rounded-full transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <span>Explorar servicios</span>
+                    </button>
+
+                    {/* Botón Tercero: Rastrear proyecto */}
+                    <button
+                      onClick={() => setClientTab("tracker")}
+                      className="px-5 py-3.5 text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-white font-space text-xs uppercase tracking-wider font-semibold cursor-pointer transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <Compass className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                      <span>Rastrear proyecto</span>
+                    </button>
+                  </div>
+
+                  {/* Mini-garantías editoriales */}
+                  <div className="pt-6 border-t border-stone-200/80 dark:border-stone-800/80 grid grid-cols-3 gap-3 text-[11px] text-stone-500 dark:text-stone-400 font-space">
+                    <div>
+                      <span className="font-bold text-stone-800 dark:text-stone-200 block">Precios Claros</span>
+                      <span>Sin cargos ocultos</span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-stone-800 dark:text-stone-200 block">Entrega Ágil</span>
+                      <span>Desde 24 a 48 horas</span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-stone-800 dark:text-stone-200 block">Atención Directa</span>
+                      <span>WhatsApp oficial</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Columna Derecha: Carrusel Visual de Servicios Destacados */}
+                <div className="lg:col-span-6 w-full">
+                  <HeroFeaturedCarousel
+                    onSelectService={(service) => setSelectedServiceForPreview(service)}
+                  />
+                </div>
+
+              </div>
             </div>
 
-            <div className="max-w-3xl space-y-6 relative z-10">
-
-              {/* Atelier Creative Spectrum Badges */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-800 dark:text-amber-300 font-mono text-[10px] uppercase font-bold tracking-wider">
-                  Atelier Creativo Digital
-                </span>
-                <span className="text-[11px] text-stone-500 dark:text-stone-400 font-space font-medium hidden sm:inline">
-                  Invitaciones · Diseño & Branding · Multimedia · Audiovisual · Web
-                </span>
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-stone-950 dark:text-white tracking-tight leading-[1.05]">
-                Estudio Creativo Digital <br />
-                <span className="font-normal italic text-amber-600 dark:text-amber-400">& Producción Multimedia de Autor</span>
-              </h1>
-
-              <p className="text-stone-600 dark:text-stone-300 text-sm md:text-lg font-light leading-relaxed max-w-2xl">
-                Soluciones visuales e interactivas creadas con rigor estético y tecnología ágil: desde invitaciones virtuales y cartas gourmet hasta identidades de marca, piezas publicitarias, producción audiovisual, spots comerciales y landing pages.
-              </p>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-4 pt-4">
-                <button
-                  onClick={() => setClientTab("catalog")}
-                  className="px-7 py-3.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold font-space text-xs uppercase tracking-[0.2em] rounded-full transition-all shadow-lg shadow-amber-500/15 cursor-pointer flex items-center gap-2"
-                >
-                  <span>Explorar Servicios</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-
-                <button
-                  onClick={() => setClientTab("quote")}
-                  className="px-7 py-3.5 bg-stone-100 hover:bg-stone-200 text-stone-900 border border-stone-300 dark:bg-stone-900/90 dark:hover:bg-stone-800 dark:text-stone-100 dark:border-stone-700 font-bold font-space text-xs uppercase tracking-[0.2em] rounded-full transition-all cursor-pointer flex items-center gap-2"
-                >
-                  <span>Cotizador en Vivo</span>
-                </button>
-
-                <button
-                  onClick={() => setClientTab("tracker")}
-                  className="px-5 py-3.5 text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-white font-space text-xs uppercase tracking-wider font-semibold cursor-pointer transition-colors flex items-center gap-1.5"
-                >
-                  <Compass className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                  <span>Rastreo de Proyecto</span>
-                </button>
-              </div>
-
-              {/* Editorial Highlights */}
-              <div className="pt-8 border-t border-stone-200/80 dark:border-stone-800/80 grid grid-cols-1 sm:grid-cols-3 gap-6 text-xs text-stone-600 dark:text-stone-300 font-light">
-                <div className="space-y-1">
-                  <span className="font-serif text-amber-700 dark:text-amber-400 text-base italic block">01. Identidad & Multimedia</span>
-                  <p className="text-[11px] text-stone-500 dark:text-stone-400">Branding, piezas publicitarias para redes, banners y composiciones gráficas de alta resolución.</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="font-serif text-amber-700 dark:text-amber-400 text-base italic block">02. Experiencias Interactivas</span>
-                  <p className="text-[11px] text-stone-500 dark:text-stone-400">Invitaciones virtuales con RSVP, cartas gastronómicas digitales y landing pages para móviles.</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="font-serif text-amber-700 dark:text-amber-400 text-base italic block">03. Audiovisual & Spots</span>
-                  <p className="text-[11px] text-stone-500 dark:text-stone-400">Edición cinemática, spots con locución, animación motion y seguimiento con código único.</p>
-                </div>
-              </div>
-
-            </div>
+            {/* FRANJA RÁPIDA DE CATEGORÍAS "¿QUÉ QUIERES CREAR?" */}
+            <CategoryQuickBar
+              onSelectService={(service) => setSelectedServiceForPreview(service)}
+              onSelectProjectType={(type) => handleStartNewOrder(type)}
+            />
           </div>
+
+          <div id="catalog-section-anchor" />
 
           {/* EDITORIAL SUB-NAVIGATION TABS (ONLY 3 TABS) */}
           <div className="flex items-center justify-start gap-3 border-b border-stone-200/80 dark:border-stone-800 pb-4 overflow-x-auto">
@@ -1035,37 +1067,6 @@ export default function App() {
               )}
             </div>
           )}
-
-          {/* EDITORIAL REVIEWS & TESTIMONIALS */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4">
-            <div className="p-8 bg-white dark:bg-[#141311] border border-stone-200/80 dark:border-stone-800/80 rounded-3xl space-y-3 shadow-sm">
-              <span className="text-amber-500 font-serif text-lg tracking-widest block">★★★★★</span>
-              <p className="text-xs text-stone-600 dark:text-stone-300 font-light leading-relaxed">
-                "La música autoejecutable de nuestra invitación de Bodas sorprendió a todos los invitados. Fue un deleite ver las confirmaciones de asistencia organizadas al instante por WhatsApp."
-              </p>
-              <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest font-space">
-                — Sofía & Alejandro · Novios V.A.C.
-              </p>
-            </div>
-            <div className="p-8 bg-white dark:bg-[#141311] border border-stone-200/80 dark:border-stone-800/80 rounded-3xl space-y-3 shadow-sm">
-              <span className="text-amber-500 font-serif text-lg tracking-widest block">★★★★★</span>
-              <p className="text-xs text-stone-600 dark:text-stone-300 font-light leading-relaxed">
-                "Hicimos la de 15 años para mi hija con lluvia de estrellas animada y el dress code sugerido. El contador de días creó una expectativa inmensa en toda la familia."
-              </p>
-              <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest font-space">
-                — Mariana R. · Quinceañera Atelier
-              </p>
-            </div>
-            <div className="p-8 bg-white dark:bg-[#141311] border border-stone-200/80 dark:border-stone-800/80 rounded-3xl space-y-3 shadow-sm">
-              <span className="text-amber-500 font-serif text-lg tracking-widest block">★★★★★</span>
-              <p className="text-xs text-stone-600 dark:text-stone-300 font-light leading-relaxed">
-                "El menú gastronómico digital se ve espectacular en el celular. Los clientes envían comandas instantáneas y nos ahorró miles de pesos en reimpresiones de cartas de papel."
-              </p>
-              <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest font-space">
-                — Chef Eduardo M. · Bistro Gourmet
-              </p>
-            </div>
-          </div>
 
         </div>
       ) : (

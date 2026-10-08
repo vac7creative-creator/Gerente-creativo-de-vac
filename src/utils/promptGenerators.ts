@@ -245,7 +245,7 @@ export const seedProjects: Project[] = [
       recepcionLocal: "Jardín de Eventos Las Fuentecillas",
       recepcionDireccion: "Km 4.5 Carretera Real a las Haciendas",
       recepcionMapsUrl: "https://maps.google.com/?q=Jardin+Las+Fuentecillas",
-      confirmacionWhatsapp: "+525545678901",
+      confirmacionWhatsapp: "+51932350348",
       confirmacionFechaLimite: "2026-09-15",
       multimediaFotos: [
         "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=400",
@@ -271,7 +271,7 @@ export const seedProjects: Project[] = [
   {
     id: "proj-2",
     clientName: "Valentina Fernandez Martinez",
-    clientPhone: "+52 55 9876 5432",
+    clientPhone: "+51 932 350 348",
     clientEmail: "valentina.xv.info@gmail.com",
     type: ProjectType.XV_ANOS,
     status: ProjectStatus.PENDIENTE,
@@ -289,7 +289,7 @@ export const seedProjects: Project[] = [
       videoUrl: "",
       colorPalette: "Dorado",
       tematica: "Princesa de Ensueño en el Bosque Encantado",
-      confirmacionWhatsapp: "+525598765432",
+      confirmacionWhatsapp: "+51932350348",
       cuentaRegresiva: true,
       extras: {
         mesaRegalos: true,
@@ -301,7 +301,7 @@ export const seedProjects: Project[] = [
   {
     id: "proj-3",
     clientName: "Bistro Gourmet & Gelato",
-    clientPhone: "+52 55 3322 1100",
+    clientPhone: "+51 932 350 348",
     clientEmail: "bistrogourmet@fastbusiness.com",
     type: ProjectType.CARTA_DIGITAL,
     status: ProjectStatus.EN_REVISION,
@@ -310,10 +310,10 @@ export const seedProjects: Project[] = [
     menuDetails: {
       businessName: "Bistro Gourmet & Gelato",
       logoUrl: "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=200",
-      address: "Paseo de la Reforma 322, Col. Juárez, CDMX",
-      whatsapp: "+525533221100",
-      instagramUrl: "https://instagram.com/bistrogourmet_mx",
-      facebookUrl: "https://facebook.com/bistrogourmet_mx",
+      address: "Av. La Mar 820, Miraflores, Lima",
+      whatsapp: "+51932350348",
+      instagramUrl: "https://instagram.com/bistrogourmet_pe",
+      facebookUrl: "https://facebook.com/bistrogourmet_pe",
       designTheme: "Gourmet",
       items: [
         {

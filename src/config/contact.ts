@@ -12,8 +12,8 @@
 export const CONTACT_CONFIG = {
   brandName: "V.A.C. Creative Studio",
   // Número comercial oficial para Perú (+51)
-  whatsappNumber: "51912345678",
-  whatsappDisplay: "+51 912 345 678",
+  whatsappNumber: "51932350348",
+  whatsappDisplay: "+51 932 350 348",
   contactEmail: "vac7creative@gmail.com",
   
   createWhatsAppUrl: (message: string) => {
