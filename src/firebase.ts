@@ -425,8 +425,8 @@ export async function createPublicOrderWithTracking(project: Project): Promise<{
     const projRef = doc(db, "projects", projectId);
     const trackRef = doc(db, "tracking", trackingCode);
 
-    batch.set(projRef, sanitizeForFirestore(projectData));
-    batch.set(trackRef, sanitizeForFirestore(trackingData));
+    batch.set(projRef, sanitizeForFirestore(projectData), { merge: true });
+    batch.set(trackRef, sanitizeForFirestore(trackingData), { merge: true });
 
     await batch.commit();
     return {

@@ -47,20 +47,51 @@ service cloud.firestore {
         && incoming().updatedAt is string;
     }
 
-    // Projects collection: Private for admin, public create only
+    function isValidPublicProjectUpdate(projectId) {
+      return isValidId(projectId)
+        && isValidProject(incoming())
+        // El documento debe pertenecer al mismo ID y estar en estado Pendiente
+        && resource.data.id == projectId
+        && incoming().id == projectId
+        && resource.data.status == "Pendiente"
+        && incoming().status == "Pendiente"
+        // Inmutabilidad de identidad: no alterar trackingCode, cliente, tipo ni creación original
+        && (!('trackingCode' in resource.data) || incoming().trackingCode == resource.data.trackingCode)
+        && (!('clientName' in resource.data) || incoming().clientName == resource.data.clientName)
+        && (!('type' in resource.data) || incoming().type == resource.data.type)
+        && (!('createdAt' in resource.data) || incoming().createdAt == resource.data.createdAt)
+        && incoming().updatedAt is string;
+    }
+
+    function isValidPublicTrackingUpdate(code) {
+      return incoming().keys().hasOnly(['trackingCode', 'projectId', 'serviceType', 'status', 'createdAt', 'updatedAt', 'publicMessage'])
+        && incoming().trackingCode is string
+        && incoming().trackingCode == code
+        && incoming().trackingCode == resource.data.trackingCode
+        && incoming().projectId == resource.data.projectId
+        && incoming().serviceType == resource.data.serviceType
+        && resource.data.status == "Pendiente"
+        && incoming().status == "Pendiente"
+        && incoming().createdAt == resource.data.createdAt
+        && incoming().updatedAt is string;
+    }
+
+    // Projects collection: Private for admin, public create & safe public completion update
     match /projects/{projectId} {
-      allow get, list, update, delete: if isAdmin();
+      allow get, list, delete: if isAdmin();
       allow create: if isValidId(projectId)
                     && isValidProject(incoming())
                     && (isAdmin() || incoming().status == "Pendiente");
+      allow update: if isAdmin() || isValidPublicProjectUpdate(projectId);
     }
 
-    // Tracking collection: Public get by exact secure tracking code, no listing, strict creation rules
+    // Tracking collection: Public get by exact secure tracking code, no listing, strict creation & update rules
     match /tracking/{trackingCode} {
       allow get: if isValidTrackingCode(trackingCode);
       allow list: if false;
       allow create: if isAdmin() || isValidPublicTrackingCreate();
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin() || isValidPublicTrackingUpdate(trackingCode);
+      allow delete: if isAdmin();
     }
 
     // Users collection for RBAC authorization

@@ -48,6 +48,7 @@ import { SERVICES_CATALOG_DATA, ServiceCatalogItem, PackageItem, isFeatureActive
 import { CurrencyCode, detectUserCurrency, formatCurrencyPrice } from "../utils/currency";
 import MediaUploader from "./MediaUploader";
 import { createOrGetDriveFolderForProject, uploadPendingFilesToDrive, uploadFileToDrive } from "../services/driveService";
+import { generateTrackingCode } from "../firebase";
 
 interface ProjectFormProps {
   project?: Project; // If provided, we're editing
@@ -125,7 +126,13 @@ export default function ProjectForm({
   const [activeDriveUploadsFolderId, setActiveDriveUploadsFolderId] = useState<string | undefined>(project?.driveUploadsFolderId);
   const [activeDriveReferencesFolderId, setActiveDriveReferencesFolderId] = useState<string | undefined>(project?.driveReferencesFolderId);
   const [activeDriveFinalFilesFolderId, setActiveDriveFinalFilesFolderId] = useState<string | undefined>(project?.driveFinalFilesFolderId);
-  const [activeTrackingCode, setActiveTrackingCode] = useState<string | undefined>(project?.trackingCode);
+  const [activeTrackingCode, setActiveTrackingCode] = useState<string>(() => {
+    if (project?.trackingCode && project.trackingCode.trim()) {
+      return project.trackingCode.trim();
+    }
+    return generateTrackingCode();
+  });
+  const [activeCreatedAt] = useState<string>(() => project?.createdAt || new Date().toISOString());
   const [uploadSuccessSummary, setUploadSuccessSummary] = useState<string>("");
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
@@ -467,9 +474,9 @@ export default function ProjectForm({
         clientEmail: clientEmail.trim(),
         type: selectedType,
         status: project?.status || ProjectStatus.PENDIENTE,
-        createdAt: project?.createdAt || now,
+        createdAt: activeCreatedAt,
         updatedAt: now,
-        trackingCode: activeTrackingCode || project?.trackingCode,
+        trackingCode: activeTrackingCode,
         serviceVariant: serviceVariant || undefined
       });
 
@@ -644,7 +651,7 @@ export default function ProjectForm({
       clientEmail: clientEmail.trim(),
       type: selectedType,
       status: project?.status || ProjectStatus.PENDIENTE,
-      createdAt: project?.createdAt || now,
+      createdAt: activeCreatedAt,
       updatedAt: now,
       packageId: currentPackage?.id || selectedPackageId,
       packageName: currentPackage?.name || "Básico",
@@ -653,7 +660,7 @@ export default function ProjectForm({
       serviceVariant: serviceVariant || undefined,
       uploadedFiles: currentUploadedMedia,
       googleDriveUrl: googleDriveUrl,
-      trackingCode: activeTrackingCode || project?.trackingCode,
+      trackingCode: activeTrackingCode,
       driveFolderId: activeDriveFolderId,
       driveFolderUrl: activeDriveFolderUrl,
       driveUploadsFolderId: activeDriveUploadsFolderId,
