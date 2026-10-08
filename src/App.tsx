@@ -292,6 +292,13 @@ export default function App() {
 
   // Helper: Create/Update project (Secured for Public vs Admin with Tracking Synchronization)
   const handleSaveProject = async (updatedProj: Project) => {
+    // Garantizar que siempre se pase un ID válido y no vacío
+    if (!updatedProj.id || !updatedProj.id.trim()) {
+      updatedProj.id = typeof crypto !== "undefined" && crypto.randomUUID 
+        ? `proj_${crypto.randomUUID()}` 
+        : `proj_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    }
+
     if (!isAdminAuthenticated) {
       updatedProj.status = ProjectStatus.PENDIENTE;
     }
@@ -408,9 +415,12 @@ export default function App() {
 
   // Helper to open the registration form with a pre-selected project type & notes
   const handleStartNewOrder = (type: ProjectType, prefilledNotes?: string, packageId?: string) => {
+    const newId = typeof crypto !== "undefined" && crypto.randomUUID 
+      ? `proj_${crypto.randomUUID()}` 
+      : `proj_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     setSelectedInitialPackage(packageId);
     setEditingProject({
-      id: "",
+      id: newId,
       clientName: "",
       clientPhone: "",
       clientEmail: "",

@@ -112,9 +112,14 @@ export default function ProjectForm({
   const [uploadedFiles, setUploadedFiles] = useState<ProjectMediaFile[]>([]);
   const [pendingFiles, setPendingFiles] = useState<PendingUploadFile[]>([]);
   const [googleDriveUrl, setGoogleDriveUrl] = useState("");
-  const [activeProjectId, setActiveProjectId] = useState<string>(
-    project?.id || (typeof crypto !== "undefined" && crypto.randomUUID ? `proj_${crypto.randomUUID()}` : `proj_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`)
-  );
+  const [activeProjectId, setActiveProjectId] = useState<string>(() => {
+    if (project?.id && project.id.trim()) {
+      return project.id.trim();
+    }
+    return typeof crypto !== "undefined" && crypto.randomUUID
+      ? `proj_${crypto.randomUUID()}`
+      : `proj_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  });
   const [activeDriveFolderId, setActiveDriveFolderId] = useState<string | undefined>(project?.driveFolderId);
   const [activeDriveFolderUrl, setActiveDriveFolderUrl] = useState<string | undefined>(project?.driveFolderUrl);
   const [activeDriveUploadsFolderId, setActiveDriveUploadsFolderId] = useState<string | undefined>(project?.driveUploadsFolderId);
@@ -319,7 +324,9 @@ export default function ProjectForm({
   // Load existing project block if available
   useEffect(() => {
     if (project) {
-      setActiveProjectId(project.id);
+      if (project.id && project.id.trim()) {
+        setActiveProjectId(project.id.trim());
+      }
       setActiveDriveFolderId(project.driveFolderId);
       setActiveDriveFolderUrl(project.driveFolderUrl);
       setActiveDriveUploadsFolderId(project.driveUploadsFolderId);
@@ -622,8 +629,16 @@ export default function ProjectForm({
       };
     }
 
+    const finalProjectId = (activeProjectId && activeProjectId.trim())
+      || (project?.id && project.id.trim())
+      || (typeof crypto !== "undefined" && crypto.randomUUID ? `proj_${crypto.randomUUID()}` : `proj_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`);
+
+    if (!activeProjectId || activeProjectId !== finalProjectId) {
+      setActiveProjectId(finalProjectId);
+    }
+
     return {
-      id: activeProjectId,
+      id: finalProjectId,
       clientName: clientName.trim(),
       clientPhone: clientPhone.trim(),
       clientEmail: clientEmail.trim(),
@@ -671,10 +686,11 @@ export default function ProjectForm({
     setIsSubmitting(true);
     setUploadingProgressText("");
 
+    let currentUploaded = [...uploadedFiles.filter((f) => f && f.url && !f.url.startsWith("data:"))];
+    let currentPending = [...pendingFiles];
+
     try {
       let targetFolderId = await ensureDriveFolder();
-      let currentUploaded = [...uploadedFiles.filter((f) => f && f.url && !f.url.startsWith("data:"))];
-      let currentPending = [...pendingFiles];
 
       if (currentPending.length > 0) {
         if (targetFolderId) {
@@ -683,9 +699,9 @@ export default function ProjectForm({
           for (let i = 0; i < currentPending.length; i++) {
             const item = currentPending[i];
 
-            // Si ya está subido exitosamente, reutilizarlo
-            if (item.status === "success" && (item.uploadedResult || item.id)) {
-              if (item.uploadedResult && !currentUploaded.some((u) => u.id === item.uploadedResult!.id)) {
+            // Si ya está subido exitosamente con fileId real, reutilizarlo
+            if (item.status === "success" && item.uploadedResult?.driveFileId) {
+              if (!currentUploaded.some((u) => u.driveFileId === item.uploadedResult!.driveFileId || u.id === item.uploadedResult!.id)) {
                 currentUploaded.push(item.uploadedResult);
               }
               continue;
@@ -697,9 +713,12 @@ export default function ProjectForm({
 
             const result = await uploadFileToDrive(targetFolderId, item.file, item.id);
 
-            if (result.ok && result.file) {
+            if (result.ok && result.file && result.file.driveFileId) {
               const uploadedFile = result.file;
-              currentUploaded = [...currentUploaded.filter((f) => f.id !== uploadedFile.id), uploadedFile];
+              currentUploaded = [
+                ...currentUploaded.filter((f) => f.id !== uploadedFile.id && f.driveFileId !== uploadedFile.driveFileId),
+                uploadedFile
+              ];
               currentPending = currentPending.map((p) =>
                 p.id === item.id
                   ? { ...p, status: "success" as const, uploadedResult: uploadedFile, errorMessage: undefined }
@@ -708,7 +727,7 @@ export default function ProjectForm({
             } else {
               currentPending = currentPending.map((p) =>
                 p.id === item.id
-                  ? { ...p, status: "error" as const, errorMessage: result.error || "Error al subir archivo" }
+                  ? { ...p, status: "error" as const, errorMessage: result.error || "No se obtuvo un fileId válido de Drive" }
                   : p
               );
             }
@@ -732,6 +751,9 @@ export default function ProjectForm({
       const allDone = currentPending.length === 0 || currentPending.every((p) => p.status === "success");
 
       const savedProject = constructProjectData(currentUploaded, allDone ? "ready" : "pending");
+      if (!savedProject.id || !savedProject.id.trim()) {
+        savedProject.id = activeProjectId || (project?.id && project.id.trim()) || `proj_${Date.now()}`;
+      }
       await onSave(savedProject);
 
       if (allDone) {
@@ -751,6 +773,9 @@ export default function ProjectForm({
       console.error("Error saving project:", err);
       const msg = err?.message || "Ocurrió un error al guardar el pedido. Por favor intenta nuevamente.";
       setFormError(msg);
+      // Mantener todos los archivos subidos y pendientes intactos en el estado para permitir reintento
+      setUploadedFiles([...currentUploaded]);
+      setPendingFiles([...currentPending]);
     } finally {
       setIsSubmitting(false);
       setUploadingProgressText("");
@@ -787,9 +812,12 @@ export default function ProjectForm({
 
       const result = await uploadFileToDrive(targetFolderId, item.file, item.id);
 
-      if (result.ok && result.file) {
+      if (result.ok && result.file && result.file.driveFileId) {
         const uploadedFile = result.file;
-        const updatedUploaded = [...uploadedFiles.filter((f) => f.id !== uploadedFile.id), uploadedFile];
+        const updatedUploaded = [
+          ...uploadedFiles.filter((f) => f.id !== uploadedFile.id && f.driveFileId !== uploadedFile.driveFileId),
+          uploadedFile
+        ];
         setUploadedFiles(updatedUploaded);
 
         const updatedPending = pendingFiles.map((p) =>
@@ -806,6 +834,9 @@ export default function ProjectForm({
           updatedUploaded,
           allCompleted ? "ready" : "pending"
         );
+        if (!updatedProj.id || !updatedProj.id.trim()) {
+          updatedProj.id = activeProjectId || (project?.id && project.id.trim()) || `proj_${Date.now()}`;
+        }
         await onSave(updatedProj);
 
         if (allCompleted) {
@@ -819,10 +850,10 @@ export default function ProjectForm({
       } else {
         setPendingFiles((prev) =>
           prev.map((p) =>
-            p.id === fileId ? { ...p, status: "error", errorMessage: result.error || "Error al subir archivo" } : p
+            p.id === fileId ? { ...p, status: "error", errorMessage: result.error || "No se obtuvo un fileId válido de Drive" } : p
           )
         );
-        setFormError(`Error al reintentar "${item.name}": ${result.error || "Fallo de conexión"}`);
+        setFormError(`Error al reintentar "${item.name}": ${result.error || "No se obtuvo un fileId válido"}`);
       }
     } catch (err: any) {
       setPendingFiles((prev) =>
@@ -830,7 +861,7 @@ export default function ProjectForm({
           p.id === fileId ? { ...p, status: "error", errorMessage: err?.message || "Error al subir" } : p
         )
       );
-      setFormError(`Error al subir "${item.name}": ${err?.message || "Fallo inesperado"}`);
+      setFormError(`Error al subir o guardar "${item.name}": ${err?.message || "Fallo inesperado"}`);
     } finally {
       setIsSubmitting(false);
       setUploadingProgressText("");
@@ -846,6 +877,9 @@ export default function ProjectForm({
     setFormError("");
     setUploadSuccessSummary("");
 
+    let currentUploaded = [...uploadedFiles];
+    let currentPending = [...pendingFiles];
+
     try {
       const targetFolderId = await ensureDriveFolder();
       if (!targetFolderId) {
@@ -856,11 +890,17 @@ export default function ProjectForm({
 
       setUploadingProgressText(`Reintentando subida de ${filesToRetry.length} archivo(s)...`);
 
-      let currentUploaded = [...uploadedFiles];
-      let currentPending = [...pendingFiles];
-
       for (let i = 0; i < filesToRetry.length; i++) {
         const item = filesToRetry[i];
+        
+        // Si ya está subido exitosamente con fileId real, no duplicar ni volver a subir
+        if (item.status === "success" && item.uploadedResult?.driveFileId) {
+          if (!currentUploaded.some((u) => u.driveFileId === item.uploadedResult!.driveFileId || u.id === item.uploadedResult!.id)) {
+            currentUploaded.push(item.uploadedResult);
+          }
+          continue;
+        }
+
         setUploadingProgressText(`Subiendo archivo ${i + 1} de ${filesToRetry.length}... (${item.name})`);
         
         currentPending = currentPending.map((p) => (p.id === item.id ? { ...p, status: "uploading" } : p));
@@ -868,9 +908,12 @@ export default function ProjectForm({
 
         const result = await uploadFileToDrive(targetFolderId, item.file, item.id);
 
-        if (result.ok && result.file) {
+        if (result.ok && result.file && result.file.driveFileId) {
           const uploadedFile = result.file;
-          currentUploaded = [...currentUploaded.filter((f) => f.id !== uploadedFile.id), uploadedFile];
+          currentUploaded = [
+            ...currentUploaded.filter((f) => f.id !== uploadedFile.id && f.driveFileId !== uploadedFile.driveFileId),
+            uploadedFile
+          ];
           currentPending = currentPending.map((p) =>
             p.id === item.id
               ? { ...p, status: "success" as const, uploadedResult: uploadedFile, errorMessage: undefined }
@@ -879,7 +922,7 @@ export default function ProjectForm({
         } else {
           currentPending = currentPending.map((p) =>
             p.id === item.id
-              ? { ...p, status: "error" as const, errorMessage: result.error || "Error al subir archivo" }
+              ? { ...p, status: "error" as const, errorMessage: result.error || "No se obtuvo un fileId válido de Drive" }
               : p
           );
         }
@@ -891,6 +934,9 @@ export default function ProjectForm({
       const allDone = currentPending.every((p) => p.status === "success");
 
       const savedProject = constructProjectData(currentUploaded, allDone ? "ready" : "pending");
+      if (!savedProject.id || !savedProject.id.trim()) {
+        savedProject.id = activeProjectId || (project?.id && project.id.trim()) || `proj_${Date.now()}`;
+      }
       await onSave(savedProject);
 
       if (allDone) {
@@ -905,6 +951,9 @@ export default function ProjectForm({
     } catch (err: any) {
       console.error("Error retrying uploads:", err);
       setFormError(err?.message || "Ocurrió un error al reintentar la subida.");
+      // Mantener archivos en el estado para no perderlos
+      setUploadedFiles([...currentUploaded]);
+      setPendingFiles([...currentPending]);
     } finally {
       setIsSubmitting(false);
       setUploadingProgressText("");

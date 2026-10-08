@@ -180,8 +180,19 @@ export async function processDriveUploadRequest(
       };
     }
 
-    const fileId = String(scriptData.fileId || scriptData.id || "");
-    const fileUrl = String(scriptData.fileUrl || scriptData.url || scriptData.webViewLink || (fileId ? `https://drive.google.com/file/d/${fileId}/view` : ""));
+    const fileId = String(scriptData.fileId || scriptData.id || "").trim();
+
+    if (!fileId || fileId === "undefined" || fileId === "null") {
+      return {
+        status: 502,
+        data: {
+          ok: false,
+          error: scriptData?.error || "Google Apps Script no devolvió un ID de archivo (fileId) real."
+        }
+      };
+    }
+
+    const fileUrl = String(scriptData.fileUrl || scriptData.url || scriptData.webViewLink || `https://drive.google.com/file/d/${fileId}/view`).trim();
 
     return {
       status: 200,

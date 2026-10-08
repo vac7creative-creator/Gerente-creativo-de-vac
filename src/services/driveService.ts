@@ -217,13 +217,21 @@ export async function uploadFileToDrive(
       };
     }
 
+    const realFileId = typeof data.fileId === "string" ? data.fileId.trim() : "";
+    if (!realFileId || realFileId === "undefined" || realFileId === "null") {
+      return {
+        ok: false,
+        error: `No se recibió un fileId real de Google Drive para "${file.name}".`
+      };
+    }
+
     const uploadedMedia: ProjectMediaFile = {
       id: fileCustomId || `file_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       name: file.name,
       size: file.size,
       type: file.type,
-      url: data.fileUrl || (data.fileId ? `https://drive.google.com/file/d/${data.fileId}/view` : ""),
-      driveFileId: data.fileId
+      url: data.fileUrl || `https://drive.google.com/file/d/${realFileId}/view`,
+      driveFileId: realFileId
     };
 
     return {
@@ -254,9 +262,9 @@ export async function uploadPendingFilesToDrive(
   for (let i = 0; i < total; i++) {
     const item = pendingFiles[i];
 
-    // Si ya fue subido exitosamente en un intento previo, reutilizarlo sin volver a subir
-    if (item.status === "success" && (item.uploadedResult || item.id)) {
-      if (item.uploadedResult) {
+    // Si ya fue subido exitosamente en un intento previo con fileId real, reutilizarlo sin volver a subir
+    if (item.status === "success" && item.uploadedResult?.driveFileId) {
+      if (!successfulFiles.some(f => f.driveFileId === item.uploadedResult!.driveFileId || f.id === item.uploadedResult!.id)) {
         successfulFiles.push(item.uploadedResult);
       }
       continue;
@@ -272,15 +280,17 @@ export async function uploadPendingFilesToDrive(
 
     const result = await uploadFileToDrive(folderId, item.file, item.id);
 
-    if (result.ok && result.file) {
-      successfulFiles.push(result.file);
+    if (result.ok && result.file && result.file.driveFileId) {
+      if (!successfulFiles.some(f => f.driveFileId === result.file!.driveFileId || f.id === result.file!.id)) {
+        successfulFiles.push(result.file);
+      }
       if (onFileStatusUpdate) {
         onFileStatusUpdate(item.id, "success", undefined, result.file);
       }
     } else {
       failedCount++;
       if (onFileStatusUpdate) {
-        onFileStatusUpdate(item.id, "error", result.error);
+        onFileStatusUpdate(item.id, "error", result.error || "No se obtuvo un fileId válido de Google Drive");
       }
     }
   }
