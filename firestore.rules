@@ -9,7 +9,7 @@ service cloud.firestore {
 
     function isValidTrackingCode(code) {
       return code is string 
-        && code.size() == 29 
+        && code.size() == 33 
         && code.matches('^VAC-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$');
     }
 
