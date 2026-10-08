@@ -138,8 +138,8 @@ export default function ProjectForm({
   }, [isSubmitting]);
 
   const handleAttemptClose = () => {
+    // Mientras se están subiendo archivos, no permitir cerrar de ninguna forma
     if (isSubmitting) {
-      setShowExitConfirm(true);
       return;
     }
     const hasFailedFiles = pendingFiles.some((p) => p.status === "error");
@@ -153,6 +153,7 @@ export default function ProjectForm({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        if (isSubmitting) return; // Bloquear Escape si se están subiendo archivos
         if (showExitConfirm) {
           setShowExitConfirm(false);
         } else {
@@ -926,9 +927,14 @@ export default function ProjectForm({
           </div>
           <button
             type="button"
+            disabled={isSubmitting}
             onClick={handleAttemptClose}
-            className="p-2 rounded-full bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 transition-colors cursor-pointer"
-            title="Cerrar formulario"
+            className={`p-2 rounded-full transition-colors ${
+              isSubmitting
+                ? "opacity-30 cursor-not-allowed bg-stone-100 dark:bg-stone-800 text-stone-400"
+                : "bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 cursor-pointer"
+            }`}
+            title={isSubmitting ? "Subida de archivos en curso..." : "Cerrar formulario"}
           >
             <X className="w-5 h-5" />
           </button>
@@ -2354,8 +2360,9 @@ export default function ProjectForm({
 
               <button
                 type="button"
+                disabled={isSubmitting}
                 onClick={handleAttemptClose}
-                className="w-full py-3 bg-stone-200 hover:bg-stone-300 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 font-bold font-space text-xs uppercase tracking-wider rounded-2xl transition-colors cursor-pointer"
+                className="w-full py-3 bg-stone-200 hover:bg-stone-300 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 font-bold font-space text-xs uppercase tracking-wider rounded-2xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 Cancelar
               </button>
@@ -2365,7 +2372,7 @@ export default function ProjectForm({
 
         </form>
 
-        {/* DIÁLOGO DE SEGURIDAD AL CERRAR DURANTE SUBIDA O CON ARCHIVOS PENDIENTES */}
+        {/* DIÁLOGO DE SEGURIDAD AL CERRAR SI QUEDAN ARCHIVOS CON ERROR */}
         {showExitConfirm && (
           <div className="absolute inset-0 z-50 bg-stone-950/80 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="max-w-md w-full bg-white dark:bg-[#191715] rounded-3xl p-6 border border-stone-200 dark:border-stone-800 shadow-2xl space-y-4 animate-fade-in text-left">
@@ -2374,12 +2381,10 @@ export default function ProjectForm({
               </div>
               <div>
                 <h3 className="font-serif font-bold text-lg text-stone-900 dark:text-stone-100">
-                  {isSubmitting ? "¿Interrumpir la subida de archivos?" : "¿Deseas salir del formulario?"}
+                  ¿Deseas salir del formulario?
                 </h3>
                 <p className="text-xs text-stone-600 dark:text-stone-400 mt-1.5 leading-relaxed">
-                  {isSubmitting
-                    ? "Actualmente se están procesando y subiendo tus archivos. Si sales ahora, el proceso se interrumpirá y los archivos pendientes no se guardarán."
-                    : "Tienes archivos pendientes o con error que aún no se han terminado de subir. Tu pedido ya está respaldado, pero estos archivos no se han guardado. ¿Deseas salir de todos modos?"}
+                  Tienes archivos que no se pudieron subir. Tu pedido ya está registrado, pero estos archivos pendientes no se han guardado. ¿Deseas salir de todos modos o volver para reintentar la subida?
                 </p>
               </div>
               <div className="flex items-center gap-3 pt-2">
@@ -2388,7 +2393,7 @@ export default function ProjectForm({
                   onClick={() => setShowExitConfirm(false)}
                   className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold font-space text-xs uppercase tracking-wider rounded-xl transition-all shadow-sm cursor-pointer"
                 >
-                  {isSubmitting ? "Continuar subida" : "Permanecer aquí"}
+                  Volver y reintentar
                 </button>
                 <button
                   type="button"
