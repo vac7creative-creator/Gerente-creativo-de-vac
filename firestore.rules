@@ -60,7 +60,19 @@ service cloud.firestore {
         && (!('clientName' in resource.data) || incoming().clientName == resource.data.clientName)
         && (!('type' in resource.data) || incoming().type == resource.data.type)
         && (!('createdAt' in resource.data) || incoming().createdAt == resource.data.createdAt)
-        && incoming().updatedAt is string;
+        && incoming().updatedAt is string
+        // Restricción estricta: la actualización pública solo puede modificar campos de subida a Drive y updatedAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'uploadedFiles',
+          'googleDriveUrl',
+          'driveFolderId',
+          'driveFolderUrl',
+          'driveUploadsFolderId',
+          'driveReferencesFolderId',
+          'driveFinalFilesFolderId',
+          'driveStatus',
+          'updatedAt'
+        ]);
     }
 
     function isValidPublicTrackingUpdate(code) {
