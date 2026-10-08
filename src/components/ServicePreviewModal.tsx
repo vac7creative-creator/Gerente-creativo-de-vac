@@ -4,9 +4,10 @@
  */
 
 import React, { useState } from "react";
-import { X, Check, Minus, Clock, ShieldCheck, Sparkles, Tag, ChevronLeft, ChevronRight, ArrowUpRight } from "lucide-react";
+import { X, Check, Minus, Clock, ShieldCheck, Sparkles, Tag, ChevronLeft, ChevronRight, ArrowUpRight, Eye } from "lucide-react";
 import { ProjectType } from "../types";
 import { SERVICES_CATALOG_DATA, ServiceCatalogItem, PackageItem } from "../data/servicesCatalog";
+import { PORTFOLIO_ITEMS, PortfolioItem } from "../data/portfolioCatalog";
 
 export interface ServiceItem {
   id: string;
@@ -24,13 +25,15 @@ export interface ServiceItem {
 interface ServicePreviewModalProps {
   service: ServiceItem;
   onClose: () => void;
-  onOrder: (type: ProjectType, packageId?: string) => void;
+  onOrder: (type: ProjectType, packageId?: string, sampleReference?: string) => void;
+  onViewSample?: (sample: PortfolioItem) => void;
 }
 
 export default function ServicePreviewModal({
   service,
   onClose,
-  onOrder
+  onOrder,
+  onViewSample
 }: ServicePreviewModalProps) {
   const [selectedPkgIndex, setSelectedPkgIndex] = useState<number>(0);
 
@@ -39,6 +42,8 @@ export default function ServicePreviewModal({
   const currentPkg: PackageItem | undefined = packages[selectedPkgIndex] || packages[0];
 
   const currentPrice = currentPkg?.priceInPEN != null ? currentPkg.priceInPEN : null;
+
+  const matchingSamples = PORTFOLIO_ITEMS.filter((item) => item.serviceType === service.type);
 
   const nextPackage = () => {
     if (packages.length <= 1) return;
@@ -314,7 +319,93 @@ export default function ServicePreviewModal({
               </div>
             </div>
 
-            {/* 3. EXPERIENCE LEVEL ADVICE */}
+            {/* 3. MUESTRAS DE REFERENCIA & ESTILOS DE AUTOR */}
+            {matchingSamples.length > 0 && (
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between border-b border-stone-200/80 dark:border-stone-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-4 h-px bg-amber-500" />
+                    <h3 className="text-xs uppercase font-space font-bold tracking-[0.2em] text-amber-700 dark:text-amber-400">
+                      Muestras de Referencia & Inspiración
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-space text-stone-500 dark:text-stone-400 font-medium">
+                    {matchingSamples.length} {matchingSamples.length === 1 ? "estilo" : "estilos"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {matchingSamples.map((sample) => {
+                    const isForCurrentPkg = sample.packageId === currentPkg?.id;
+                    return (
+                      <div
+                        key={sample.id}
+                        className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between space-y-3 ${
+                          isForCurrentPkg
+                            ? "bg-amber-500/10 border-amber-500/50 dark:bg-amber-500/5 dark:border-amber-500/40 shadow-xs"
+                            : "bg-white dark:bg-stone-900 border-stone-200/90 dark:border-stone-800"
+                        }`}
+                      >
+                        <div className="flex gap-3">
+                          <div className="w-16 h-16 rounded-xl overflow-hidden bg-stone-950 shrink-0 relative">
+                            <img
+                              src={sample.image}
+                              alt={sample.title}
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="space-y-1 flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-[9px] font-space uppercase px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-amber-700 dark:text-amber-400 font-bold truncate">
+                                Paquete {sample.packageName}
+                              </span>
+                              {sample.colorHighlights && (
+                                <div className="flex gap-0.5">
+                                  {sample.colorHighlights.slice(0, 3).map((col, cIdx) => (
+                                    <span key={cIdx} className="w-2.5 h-2.5 rounded-full border border-black/10" style={{ backgroundColor: col }} />
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <h4 className="font-serif font-bold text-xs text-stone-900 dark:text-stone-100 truncate">
+                              {sample.title}
+                            </h4>
+                            <p className="text-[11px] text-stone-500 dark:text-stone-400 line-clamp-1 font-light">
+                              {sample.conceptSubtitle}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-stone-100 dark:border-stone-800/80 flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => onViewSample && onViewSample(sample)}
+                            className="px-2.5 py-1.5 rounded-lg border border-stone-200 dark:border-stone-800 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 text-[11px] font-space font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>Ver muestra</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onOrder(service.type, sample.packageId, sample.title);
+                              onClose();
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-[11px] font-space transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            <span>Elegir estilo</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 4. EXPERIENCE LEVEL ADVICE */}
             <div className="bg-stone-100/70 dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 rounded-2xl p-4 flex items-start gap-3 mt-4">
               <ShieldCheck className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
               <div>
