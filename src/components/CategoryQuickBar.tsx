@@ -87,6 +87,14 @@ const QUICK_CATEGORIES: QuickCategoryItem[] = [
     icon: Utensils,
     serviceId: "carta-digital",
     projectType: ProjectType.CARTA_DIGITAL
+  },
+  {
+    id: "motion-graphics",
+    label: "Motion & Animación",
+    tag: "Animación 2D · Logos",
+    icon: Sparkles,
+    serviceId: "animacion-motion",
+    projectType: ProjectType.ANIMACION_MOTION
   }
 ];
 

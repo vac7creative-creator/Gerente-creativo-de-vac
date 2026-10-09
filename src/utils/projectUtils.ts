@@ -77,6 +77,10 @@ export function getDescriptiveProjectName(project: Project): string {
       return `Branding - ${client}`;
     }
 
+    case ProjectType.ANIMACION_MOTION: {
+      return `Animación & Motion - ${client}`;
+    }
+
     default: {
       return `${project.type || "Proyecto"} - ${client}`;
     }

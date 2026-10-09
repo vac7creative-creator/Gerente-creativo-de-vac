@@ -291,5 +291,44 @@ export const PORTFOLIO_ITEMS: PortfolioItem[] = [
     tags: ["Locución", "Audio Masterizado", "Comercial"],
     featured: false,
     colorHighlights: ["#1E1B18", "#E09F3E"]
+  },
+  {
+    id: "motion-esencial-sample",
+    title: "Motion Esencial · Animación Ágil de Marca",
+    conceptSubtitle: "Animación de logotipo y textos directos",
+    description: "Animación corta básica con movimientos limpios, ideal para presentaciones breves y reels de redes.",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791563016/Motion_Esencial.png",
+    serviceType: ProjectType.ANIMACION_MOTION,
+    packageId: "motion-esencial",
+    packageName: "Motion Esencial",
+    tags: ["Logo Motion", "2D", "Redes"],
+    featured: true,
+    colorHighlights: ["#000000", "#FF6B6B"]
+  },
+  {
+    id: "motion-profesional-sample",
+    title: "Motion Profesional · Composición Gráfica 2D",
+    conceptSubtitle: "Composición elaborada y transiciones dinámicas",
+    description: "Motion graphics con múltiples capas, tipografía cinética y transiciones personalizadas de alto ritmo.",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791563017/Motion_Profesional.png",
+    serviceType: ProjectType.ANIMACION_MOTION,
+    packageId: "motion-profesional",
+    packageName: "Motion Profesional",
+    tags: ["Motion 2D", "Tipografía Cinética", "Comercial"],
+    featured: false,
+    colorHighlights: ["#0B0B0C", "#9D4EDD"]
+  },
+  {
+    id: "motion-premium-sample",
+    title: "Motion Premium · Narrativa Cinematográfica",
+    conceptSubtitle: "Múltiples escenas y máxima dirección visual",
+    description: "Animación de alta gama con narrativa visual, acabados de autor y riqueza cinematográfica para campañas.",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791563017/Motion_Premium.png",
+    serviceType: ProjectType.ANIMACION_MOTION,
+    packageId: "motion-premium",
+    packageName: "Motion Premium",
+    tags: ["Motion Premium", "Multi-escena", "Branding"],
+    featured: true,
+    colorHighlights: ["#000000", "#D97706"]
   }
 ];

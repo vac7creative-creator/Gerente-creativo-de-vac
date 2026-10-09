@@ -133,9 +133,9 @@ export const MAIN_CATEGORIES: CategoryItem[] = [
     title: "Animación & Motion",
     subtitle: "Gráficos en movimiento y animación 2D para dar vida a tus ideas.",
     deliveryTime: "3-5 Días",
-    image: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791563016/Motion_Esencial.png",
     iconName: "Sparkles",
-    type: ProjectType.OTRO,
+    type: ProjectType.ANIMACION_MOTION,
     isSubCatalogTrigger: false,
     itinerary: [
       { label: "Storyboard de Proceso", desc: "Esquemas para entender el flujo y movimientos de los elementos vectoriales." },
@@ -321,6 +321,31 @@ export const SERVICES_CATALOG: ServiceItem[] = [
       "Ilustración 3D hiperrealista o modelado arquitectónico"
     ],
     difficulty: "Impacto Visual Publicitario"
+  },
+  {
+    id: "animacion-motion",
+    type: ProjectType.ANIMACION_MOTION,
+    title: "Animación & Motion",
+    subtitle: "Gráficos en movimiento, animación 2D y motion design de autor para marcas.",
+    deliveryTime: "3-5 Días",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791563016/Motion_Esencial.png",
+    itinerary: [
+      { label: "Briefing & Concepto", desc: "Definición del estilo gráfico, guion o storyboard de movimiento." },
+      { label: "Diseño Vectorial", desc: "Preparación y separación de capas ilustradas o logotipos para animación." },
+      { label: "Animación de Capas", desc: "Aplicación de curvas cinéticas, aceleraciones suaves y transiciones." },
+      { label: "Render & Formatos", desc: "Exportación en alta calidad en formatos MP4/MOV listos para compartir." }
+    ],
+    includes: [
+      "Animación digital personalizada según el paquete seleccionado",
+      "Formatos optimizados para redes sociales o presentaciones",
+      "Entrega en formato digital de alta resolución",
+      "Revisiones incluidas según el plan de trabajo"
+    ],
+    notIncludes: [
+      "Modelado 3D ultra complejo de alta densidad",
+      "Grabación presencial en set con rodaje de cine"
+    ],
+    difficulty: "Cinética Visual & Motion Design"
   }
 ];
 
@@ -455,6 +480,11 @@ export const COMMERCIAL_PRICING_CONFIG = {
     esencial: 40,     // Precio inicial sugerido: S/ 40
     profesional: 70,  // Precio inicial sugerido: S/ 70
     premium: 120      // Precio inicial sugerido: S/ 120
+  },
+  animacionMotion: {
+    esencial: 90,     // S/ 90
+    profesional: 180, // S/ 180
+    premium: 300      // S/ 300
   },
   otro: {
     aMedida: 120
@@ -1708,7 +1738,166 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
     difficulty: "Impacto Visual Publicitario"
   },
 
-  // 10. OTROS SERVICIOS / ANIMACIÓN & PROYECTOS ESPECIALES
+  // 10. ANIMACIÓN & MOTION (PRECIOS: Esencial 90, Profesional 180, Premium 300)
+  {
+    id: "animacion-motion",
+    type: ProjectType.ANIMACION_MOTION,
+    title: "Animación & Motion",
+    subtitle: "Gráficos en movimiento, animación 2D y motion design de autor para marcas.",
+    description: "Animaciones y motion graphics profesionales para logotipos, textos, marcas y piezas publicitarias dinámicas.",
+    deliveryTime: "3-5 Días",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791563016/Motion_Esencial.png",
+    iconName: "Sparkles",
+    quotesOnlyFeatures: [
+      "Animación de personajes complejos con rigging facial (A cotizar)",
+      "Piezas cinematográficas 3D de alta densidad con render de granja (A cotizar)",
+      "Campañas masivas animadas para televisión o circuitos de pantallas públicas (A cotizar)"
+    ],
+    packages: [
+      {
+        id: "motion-esencial",
+        name: "Motion Esencial",
+        priceInPEN: COMMERCIAL_PRICING_CONFIG.animacionMotion.esencial,
+        delivery: "2 a 3 días",
+        description: "Animación básica para logo, texto o pieza corta en movimiento con acabado profesional y ágil.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791563016/Motion_Esencial.png",
+        includedFeatureIds: [
+          "animacion_corta_basica",
+          "movimientos_limpios",
+          "animacion_logo_tipografia",
+          "duracion_breve",
+          "composicion_simple",
+          "formato_digital",
+          "una_correccion"
+        ],
+        benefits: [
+          "Ideal para animaciones breves, limpias y directas",
+          "Animación corta básica con movimientos limpios y sencillos",
+          "Animación de logo o tipografía",
+          "Duración breve orientativa",
+          "Una composición simple y clara",
+          "Entrega en formato digital listo para compartir",
+          "1 corrección básica"
+        ],
+        upgradableFeatures: [
+          "Mayor desarrollo visual y composición 2D multicapa",
+          "Múltiples escenas y narrativa cinematográfica",
+          "Transiciones personalizadas y más capas gráficas",
+          "Canal alfa (fondo transparente) y archivos editables"
+        ]
+      },
+      {
+        id: "motion-profesional",
+        name: "Motion Profesional",
+        priceInPEN: COMMERCIAL_PRICING_CONFIG.animacionMotion.profesional,
+        delivery: "3 a 4 días",
+        description: "Motion graphic profesional con mejor composición, más elementos en pantalla y transiciones más elaboradas.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791563017/Motion_Profesional.png",
+        includedFeatureIds: [
+          "animacion_corta_basica",
+          "movimientos_limpios",
+          "animacion_logo_tipografia",
+          "duracion_breve",
+          "composicion_simple",
+          "formato_digital",
+          "mayor_desarrollo_visual",
+          "composicion_2d_elaborada",
+          "mas_capas_graficas",
+          "tipografia_en_movimiento",
+          "transiciones_personalizadas",
+          "mejor_acabado_general",
+          "duracion_mayor_orientativa",
+          "dos_correcciones"
+        ],
+        benefits: [
+          "Todo lo del paquete Motion Esencial",
+          "Mayor desarrollo visual",
+          "Composición 2D más elaborada",
+          "Más capas gráficas en pantalla",
+          "Tipografía en movimiento",
+          "Transiciones personalizadas",
+          "Mejor acabado general",
+          "Duración mayor orientativa",
+          "2 correcciones"
+        ],
+        upgradableFeatures: [
+          "Múltiples escenas y narrativa visual avanzada",
+          "Acabado de autor con máxima dirección visual",
+          "Modelado o integración 3D",
+          "Archivos fuente editables abiertos"
+        ]
+      },
+      {
+        id: "motion-premium",
+        name: "Motion Premium",
+        priceInPEN: COMMERCIAL_PRICING_CONFIG.animacionMotion.premium,
+        delivery: "4 a 5 días",
+        description: "Animación avanzada de alto nivel con múltiples escenas, narrativa visual más sólida y mejor acabado de autor.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791563017/Motion_Premium.png",
+        includedFeatureIds: [
+          "animacion_corta_basica",
+          "movimientos_limpios",
+          "animacion_logo_tipografia",
+          "duracion_breve",
+          "composicion_simple",
+          "formato_digital",
+          "mayor_desarrollo_visual",
+          "composicion_2d_elaborada",
+          "mas_capas_graficas",
+          "tipografia_en_movimiento",
+          "transiciones_personalizadas",
+          "mejor_acabado_general",
+          "duracion_mayor_orientativa",
+          "multiples_escenas",
+          "mejor_direccion_visual",
+          "composicion_cinematografica",
+          "mas_detalle_animaciones",
+          "mayor_complejidad_grafica",
+          "acabado_premium_autor",
+          "duracion_superior_orientativa",
+          "dos_correcciones"
+        ],
+        benefits: [
+          "Todo lo del paquete Motion Profesional",
+          "Múltiples escenas",
+          "Mejor dirección visual",
+          "Composición más rica y cinematográfica",
+          "Más detalle en animaciones",
+          "Mayor complejidad gráfica",
+          "Acabado premium",
+          "Duración superior orientativa",
+          "2 correcciones"
+        ]
+      }
+    ],
+    addons: [
+      { id: "animacion_3d", label: "Animación 3D", priceInPEN: 80, description: "Integración de componentes o profundidad tridimensional.", icon: "zap" },
+      { id: "fondo_transparente", label: "Fondo Transparente", priceInPEN: 40, description: "Exportación lista para superponer sobre cualquier video o web.", icon: "camera" },
+      { id: "archivo_editable", label: "Archivo Editable", priceInPEN: 70, description: "Proyecto abierto con composiciones y recursos organizados.", icon: "qr" },
+      { id: "entrega_urgente", label: "Entrega Urgente", priceInPEN: 60, description: "Desarrollo acelerado en cola preferencial.", icon: "zap" },
+      { id: "formatos_extra", label: "Formatos Extra", priceInPEN: 45, description: "Reencuadre y adaptación de motion a múltiples redes (9:16, 16:9, 1:1).", icon: "qr" },
+      { id: "exportacion_especial", label: "Resolución o Exportación Especial", priceInPEN: 35, description: "Render en máxima definición (4K o 60fps) y compresión optimizada.", icon: "zap" }
+    ],
+    itinerary: [
+      { label: "Briefing & Guion", desc: "Definición del estilo visual, objetivo de la animación y storyboard." },
+      { label: "Diseño Vectorial", desc: "Preparación y separación de capas gráficas listas para animación." },
+      { label: "Animación Cinética", desc: "Desarrollo de curvas de velocidad, transiciones y efectos dinámicos." },
+      { label: "Render & Entrega", desc: "Exportación en formatos finales de alta fidelidad listos para compartir." }
+    ],
+    includes: [
+      "Animación personalizada según el paquete elegido",
+      "Formatos optimizados para redes, publicidad o web",
+      "Sincronización rítmica y transiciones limpias",
+      "Revisiones según el plan seleccionado"
+    ],
+    notIncludes: [
+      "Modelado 3D hiperrealista de grado industrial",
+      "Producción presencial en set con rodaje de cine"
+    ],
+    difficulty: "Cinética Visual & Motion Design"
+  },
+
+  // 11. OTROS SERVICIOS / PROYECTOS ESPECIALES
   {
     id: "otro",
     type: ProjectType.OTRO,

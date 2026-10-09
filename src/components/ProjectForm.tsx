@@ -2171,8 +2171,8 @@ export default function ProjectForm({
               </div>
             )}
 
-            {/* 3J: OTRO */}
-            {selectedType === ProjectType.OTRO && (
+            {/* 3J: OTRO / ANIMACIÓN & MOTION */}
+            {(selectedType === ProjectType.OTRO || selectedType === ProjectType.ANIMACION_MOTION) && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 border-b border-stone-200 dark:border-stone-800 pb-2">
                   <span className="w-5 h-px bg-amber-500" />

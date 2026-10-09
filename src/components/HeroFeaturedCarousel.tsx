@@ -34,7 +34,8 @@ export default function HeroFeaturedCarousel({ onSelectService }: HeroFeaturedCa
       "produccion-audiovisual",
       "branding",
       "landing-page",
-      "carta-digital"
+      "carta-digital",
+      "animacion-motion"
     ];
 
     return featuredIds
@@ -62,6 +63,7 @@ export default function HeroFeaturedCarousel({ onSelectService }: HeroFeaturedCa
         else if (s.id === "branding") categoryLabel = "Identidad & Marca";
         else if (s.id === "landing-page") categoryLabel = "Web Comercial & Móvil";
         else if (s.id === "carta-digital") categoryLabel = "Carta & Menú Digital";
+        else if (s.id === "animacion-motion") categoryLabel = "Animación & Motion";
 
         return {
           service: s,

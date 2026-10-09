@@ -13,6 +13,7 @@ export enum ProjectType {
   DISENO_GRAFICO = "Diseño Gráfico",
   LANDING_PAGE = "Landing Page",
   ARTES_MULTIMEDIA = "Diseño / Artes Multimedia",
+  ANIMACION_MOTION = "Animación & Motion",
   OTRO = "Otro"
 }
 
