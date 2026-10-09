@@ -37,11 +37,13 @@ export default function ServicePreviewModal({
 }: ServicePreviewModalProps) {
   const [selectedPkgIndex, setSelectedPkgIndex] = useState<number>(0);
 
-  const catalogItem: ServiceCatalogItem = SERVICES_CATALOG_DATA.find((s) => s.type === service.type) || SERVICES_CATALOG_DATA[0];
+  const catalogItem: ServiceCatalogItem =
+    SERVICES_CATALOG_DATA.find((s) => s.id === service.id || s.type === service.type) || SERVICES_CATALOG_DATA[0];
   const packages: PackageItem[] = catalogItem.packages || [];
   const currentPkg: PackageItem | undefined = packages[selectedPkgIndex] || packages[0];
 
   const currentPrice = currentPkg?.priceInPEN != null ? currentPkg.priceInPEN : null;
+  const activeImage = currentPkg?.image || catalogItem.image || service.image;
 
   const matchingSamples = PORTFOLIO_ITEMS.filter((item) => item.serviceType === service.type);
 
@@ -71,34 +73,57 @@ export default function ServicePreviewModal({
         </button>
 
         {/* LEFT COLUMN: Immersive visual presentation */}
-        <div className="relative w-full md:w-5/12 h-64 md:h-auto min-h-[300px] md:min-h-[600px] flex flex-col justify-end p-6 md:p-8 overflow-hidden select-none">
-          <div className="absolute inset-0 z-0">
+        <div className="relative w-full md:w-5/12 min-h-[460px] md:min-h-[640px] flex flex-col justify-end p-6 md:p-8 overflow-hidden select-none bg-stone-950">
+          {/* Ambient diffuse continuation sampling bottom palette of the active sample */}
+          <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
             <img 
-              src={service.image} 
-              alt={service.title} 
+              key={`ambient-${activeImage}`}
+              src={activeImage} 
+              alt="" 
+              aria-hidden="true"
               referrerPolicy="no-referrer"
-              className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+              className="absolute -bottom-10 inset-x-0 w-full h-[85%] object-cover object-bottom blur-3xl opacity-50 scale-110 transition-opacity duration-700"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/40 to-transparent"></div>
+            {/* Scrim over ambient glow */}
+            <div className="absolute inset-0 bg-stone-950/40 pointer-events-none" />
           </div>
 
-          <div className="relative z-10 space-y-3">
-            <span className="text-[10px] bg-amber-500 text-stone-950 font-bold uppercase tracking-[0.16em] px-3 py-1 rounded-full inline-block">
+          {/* Main sample image: begins from very top edge, spans 100% full width, natural aspect ratio */}
+          <div className="absolute top-0 inset-x-0 z-[1] pointer-events-none overflow-hidden">
+            <div className="relative w-full">
+              <img 
+                key={`main-${activeImage}`}
+                src={activeImage} 
+                alt={`${service.title} - ${currentPkg?.name || ""}`} 
+                referrerPolicy="no-referrer"
+                className="w-full h-auto block select-none transition-all duration-500 animate-fade-in"
+              />
+              {/* Progressive fade at the bottom boundary of the image to eliminate any hard cuts */}
+              <div className="absolute inset-x-0 bottom-0 h-32 sm:h-40 md:h-52 bg-gradient-to-b from-transparent via-stone-950/60 to-stone-950 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Deep gradient overlay spanning the lower 75% for absolute text readability and seamless bottom fusion */}
+          <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-stone-950 via-stone-950/90 via-50% to-transparent pointer-events-none z-[2]" />
+
+          {/* Text and badges overlay positioned legibly in the lower zone */}
+          <div className="relative z-10 space-y-3 mt-auto">
+            <span className="text-[10px] bg-amber-500 text-stone-950 font-bold uppercase tracking-[0.16em] px-3 py-1 rounded-full inline-block shadow-sm">
               V.A.C. Creative Edition
             </span>
             <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-[-0.03em] leading-tight drop-shadow-md">
               {service.title}
             </h2>
-            <p className="text-stone-200 text-xs md:text-sm leading-relaxed drop-shadow-sm font-normal">
+            <p className="text-stone-200 text-xs md:text-sm leading-relaxed drop-shadow-sm font-normal line-clamp-3 md:line-clamp-none">
               {currentPkg.description}
             </p>
 
-            <div className="flex flex-wrap gap-2 pt-2">
-              <div className="bg-stone-900/80 backdrop-blur-xs text-white border border-stone-700 px-3.5 py-1.5 rounded-full font-mono text-xs font-semibold flex items-center gap-1.5 shadow-md">
+            <div className="flex flex-wrap gap-2 pt-1.5">
+              <div className="bg-stone-900/85 backdrop-blur-md text-white border border-stone-700/80 px-3.5 py-1.5 rounded-full font-mono text-xs font-semibold flex items-center gap-1.5 shadow-md">
                 <Clock className="w-3.5 h-3.5 text-amber-400" />
                 <span>{currentPkg?.delivery || service.deliveryTime}</span>
               </div>
-              <div className="bg-stone-900/80 backdrop-blur-xs text-amber-400 border border-amber-500/40 px-3.5 py-1.5 rounded-full font-mono text-xs font-bold flex items-center gap-1.5 shadow-md">
+              <div className="bg-stone-900/85 backdrop-blur-md text-amber-400 border border-amber-500/50 px-3.5 py-1.5 rounded-full font-mono text-xs font-bold flex items-center gap-1.5 shadow-md">
                 <Tag className="w-3.5 h-3.5" />
                 <span>{currentPrice != null ? `S/ ${currentPrice}` : "Precio a cotizar"}</span>
               </div>

@@ -27,7 +27,7 @@ export const MAIN_CATEGORIES: CategoryItem[] = [
     title: "Diseño / Artes Multimedia",
     subtitle: "Flyers publicitarios, posts para redes, historias, banners y fotomontajes de alto impacto visual.",
     deliveryTime: "24-48 Horas",
-    image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513930/Arte_Esencial.png",
     iconName: "Palette",
     type: ProjectType.ARTES_MULTIMEDIA,
     isSubCatalogTrigger: false,
@@ -52,7 +52,7 @@ export const MAIN_CATEGORIES: CategoryItem[] = [
     title: "Diseño Gráfico",
     subtitle: "Identidad visual disruptiva y comunicación de alto impacto que define marcas.",
     deliveryTime: "2-4 Días",
-    image: "https://images.unsplash.com/photo-1626785774573-4b799315345d?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513924/Logo.png",
     iconName: "Palette",
     type: ProjectType.DISENO_GRAFICO,
     isSubCatalogTrigger: false,
@@ -79,7 +79,7 @@ export const MAIN_CATEGORIES: CategoryItem[] = [
     title: "Audiovisual y Video",
     subtitle: "Producción cinemática para narrativas visuales que cautivan a tu audiencia.",
     deliveryTime: "3-5 Días",
-    image: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791557403/Producci%C3%B3n_Audiovisual_Video_-Express.png",
     iconName: "Video",
     type: ProjectType.FOTO_VIDEO,
     isSubCatalogTrigger: false,
@@ -106,7 +106,7 @@ export const MAIN_CATEGORIES: CategoryItem[] = [
     title: "Spots Publicitarios",
     subtitle: "Estrategias de audio y locución orientadas a posicionamiento de mercado.",
     deliveryTime: "2-4 Días",
-    image: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513923/Simple.png",
     iconName: "Volume2",
     type: ProjectType.SPOT,
     isSubCatalogTrigger: false,
@@ -190,7 +190,7 @@ export const SERVICES_CATALOG: ServiceItem[] = [
     title: "Invitación Virtual de Bodas",
     subtitle: "Maquetación premium con confirmación RSVP inteligente, música personalizada, mapas y paleta de alta costura.",
     deliveryTime: "2-4 Días",
-    image: "https://images.unsplash.com/photo-1607190074257-dd4b7af0309f?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791559267/BODA_-_BASICO.png",
     itinerary: [
       { label: "Alta de Datos", desc: "Comienza registrando vuestros nombres, fecha, hora e iglesias contratadas." },
       { label: "Borrador Digital", desc: "En 48h nuestro equipo genera un enlace con vuestra tipografía y fondos premium." },
@@ -216,7 +216,7 @@ export const SERVICES_CATALOG: ServiceItem[] = [
     title: "Invitación de XV Años Princesa",
     subtitle: "Animaciones mágicas, lluvia de destellos, cronómetro y dress code para una fiesta inolvidable.",
     deliveryTime: "2-4 Días",
-    image: "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791557513/XV_A%C3%91OS_-BASICO.png",
     itinerary: [
       { label: "Briefing", desc: "Datos de la quinceañera y temática elegida." },
       { label: "Diseño", desc: "Creación de la interfaz mágica con animaciones." },
@@ -232,7 +232,7 @@ export const SERVICES_CATALOG: ServiceItem[] = [
     title: "Invitación de Cumpleaños Express",
     subtitle: "Formato ágil de alta energía con botón de ubicación y confirmación.",
     deliveryTime: "24-48 Horas",
-    image: "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791559607/EXPRESS.png",
     itinerary: [{ label: "Creación", desc: "Entrega rápida en 24h a 48h." }],
     includes: ["Enlace web", "WhatsApp", "Diseño responsive"],
     notIncludes: ["Impresión física"],
@@ -244,7 +244,7 @@ export const SERVICES_CATALOG: ServiceItem[] = [
     title: "Carta & Menú Digital Gourmet",
     subtitle: "Catálogo de platillos con categorías, fotos y envío de comanda a WhatsApp.",
     deliveryTime: "2-4 Días",
-    image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791559998/Carta_Y_Men%C3%BA_-_BASICO.png",
     itinerary: [{ label: "Maquetación", desc: "Carga de productos y precios." }],
     includes: ["Responsive", "WhatsApp de pedidos", "Actualización rápida"],
     notIncludes: ["Impresión física de cartas"],
@@ -256,7 +256,7 @@ export const SERVICES_CATALOG: ServiceItem[] = [
     title: "Landing Page Comercial",
     subtitle: "Página web de alta conversión para venta o captación de prospectos.",
     deliveryTime: "3-5 Días",
-    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513927/ECENCIAL.png",
     itinerary: [{ label: "Estructura", desc: "Diseño orientado a ventas y conversiones." }],
     includes: ["SEO básico", "Formulario de contacto", "WhatsApp"],
     notIncludes: ["Hosting corporativo anual", "Comercio electrónico masivo"],
@@ -268,7 +268,7 @@ export const SERVICES_CATALOG: ServiceItem[] = [
     title: "Spot Publicitario / Locución",
     subtitle: "Audio comercial con locución profesional y masterización de sonido.",
     deliveryTime: "2-4 Días",
-    image: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513923/Simple.png",
     itinerary: [{ label: "Locución", desc: "Grabación en cabina insonorizada y edición." }],
     includes: ["WAV y MP3 en alta fidelidad", "Licencia de uso comercial"],
     notIncludes: ["Pauta publicitaria económica"],
@@ -280,7 +280,7 @@ export const SERVICES_CATALOG: ServiceItem[] = [
     title: "Producción Audiovisual / Video",
     subtitle: "Edición cinemática, corrección de color y formato vertical para redes.",
     deliveryTime: "3-5 Días",
-    image: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791557403/Producci%C3%B3n_Audiovisual_Video_-Express.png",
     itinerary: [{ label: "Montaje", desc: "Edición y sincronización rítmica de audio." }],
     includes: ["Edición cinemática", "Color grading base", "Exportación optimizada"],
     notIncludes: ["Grabación presencial en locación con dron o camarógrafo (disponible a cotizar)"],
@@ -292,7 +292,7 @@ export const SERVICES_CATALOG: ServiceItem[] = [
     title: "Identidad Gráfica & Branding",
     subtitle: "Diseño de logotipos vectoriales originales y paletas cromáticas.",
     deliveryTime: "2-4 Días",
-    image: "https://images.unsplash.com/photo-1626785774573-4b799315345d?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513924/Logo.png",
     itinerary: [{ label: "Bocetado", desc: "Creación de propuestas gráficas conceptuales." }],
     includes: ["Vectores originales", "Guía cromática", "Derechos comerciales"],
     notIncludes: ["Registro de marca legal"],
@@ -304,7 +304,7 @@ export const SERVICES_CATALOG: ServiceItem[] = [
     title: "Diseño / Artes Multimedia",
     subtitle: "Diseño de flyers, posts, afiches, banners, historias y fotomontajes de alto impacto visual.",
     deliveryTime: "24-48 Horas",
-    image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513930/Arte_Esencial.png",
     itinerary: [
       { label: "Briefing Visual", desc: "Recopilación de textos, fotografías y objetivos comerciales de la pieza." },
       { label: "Composición & Arte", desc: "Montaje gráfico, tratamiento de tipografías y efectos visuales." },
@@ -333,6 +333,7 @@ export interface PackageItem {
   includedFeatureIds: string[];
   benefits: string[];
   upgradableFeatures?: string[];
+  image?: string;
 }
 
 export interface AddonItem {
@@ -437,6 +438,7 @@ export const COMMERCIAL_PRICING_CONFIG = {
   },
   spot: {
     simple: 80,       // Precio inicial sugerido
+    express: 110,     // Precio inicial sugerido
     premium: 150      // Precio inicial sugerido
   },
   audiovisual: {
@@ -468,7 +470,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
     subtitle: "Maquetación premium con confirmación RSVP inteligente, música autoejecutable, mapas y paleta de alta costura.",
     description: "Diseño elegante para parejas con confirmación RSVP y enlace web propio.",
     deliveryTime: "2-4 Días",
-    image: "https://images.unsplash.com/photo-1607190074257-dd4b7af0309f?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791559267/BODA_-_BASICO.png",
     iconName: "Smartphone",
     packages: [
       {
@@ -477,6 +479,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.boda.basico,
         delivery: "3 a 5 días",
         description: "Información esencial y diseño elegante para compartir el gran día.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791559267/BODA_-_BASICO.png",
         includedFeatureIds: [
           "enlace_web",
           "nombres_novios",
@@ -515,6 +518,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.boda.intermedio,
         delivery: "3 a 4 días",
         description: "Información e interacción avanzada con música, mapas y galería.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513924/INTERMEDDIO.png",
         includedFeatureIds: [
           "enlace_web",
           "nombres_novios",
@@ -560,6 +564,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.boda.pro,
         delivery: "2 a 3 días",
         description: "Experiencia completa premium con álbum colaborativo, RSVP con pases y animaciones estelares.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513929/Pro.png",
         includedFeatureIds: [
           "enlace_web",
           "nombres_novios",
@@ -631,7 +636,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
     subtitle: "Animaciones mágicas, lluvia de destellos, cronómetro y dress code para una fiesta inolvidable.",
     description: "Animaciones mágicas, lluvia de destellos, cronómetro y dress code.",
     deliveryTime: "2-4 Días",
-    image: "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791557513/XV_A%C3%91OS_-BASICO.png",
     iconName: "Sparkles",
     packages: [
       {
@@ -640,6 +645,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.xvAnos.basico,
         delivery: "3 a 4 días",
         description: "Invitación esencial con diseño mágico, ubicación escrita y fotografías.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791557513/XV_A%C3%91OS_-BASICO.png",
         includedFeatureIds: [
           "enlace_web",
           "quinceanera_nombre",
@@ -675,6 +681,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.xvAnos.intermedio,
         delivery: "2 a 3 días",
         description: "Experiencia interactiva con música, mapas, cuenta regresiva y confirmación.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791557512/XV_A%C3%91OS_-_INTERMEDIO.png",
         includedFeatureIds: [
           "enlace_web",
           "quinceanera_nombre",
@@ -717,6 +724,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.xvAnos.pro,
         delivery: "24 a 48 horas",
         description: "Experiencia premium completa con álbum colaborativo, QR, video y RSVP avanzado.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791557512/XV_A%C3%91OS_-_PRO.png",
         includedFeatureIds: [
           "enlace_web",
           "quinceanera_nombre",
@@ -779,7 +787,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
     subtitle: "Formato ágil de alta energía con botón de ubicación y confirmación.",
     description: "Formato ágil de alta energía con botón de ubicación y confirmación.",
     deliveryTime: "24-48 Horas",
-    image: "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791559607/EXPRESS.png",
     iconName: "Sparkles",
     packages: [
       {
@@ -788,6 +796,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.cumpleanos.express,
         delivery: "24 horas",
         description: "Invitación rápida y visual, ideal para compartir por WhatsApp.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791559607/EXPRESS.png",
         includedFeatureIds: [
           "enlace_web",
           "festejado_nombre",
@@ -820,6 +829,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.cumpleanos.interactivo,
         delivery: "24 a 48 horas",
         description: "Suma música, cuenta regresiva, botón de ubicación y confirmación por WhatsApp.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513926/INTERACTIVO.png",
         includedFeatureIds: [
           "enlace_web",
           "festejado_nombre",
@@ -857,6 +867,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.cumpleanos.premium,
         delivery: "24 a 48 horas",
         description: "Experiencia completa para grandes celebraciones con video, QR y animaciones.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791559437/PREMIUN.png",
         includedFeatureIds: [
           "enlace_web",
           "festejado_nombre",
@@ -911,7 +922,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
     subtitle: "Catálogo de platillos con categorías, fotos y envío de comanda a WhatsApp.",
     description: "Catálogo de platillos con categorías, fotos y envío de comanda a WhatsApp.",
     deliveryTime: "2-4 Días",
-    image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791559998/Carta_Y_Men%C3%BA_-_BASICO.png",
     iconName: "Smartphone",
     packages: [
       {
@@ -920,6 +931,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.cartaDigital.basico,
         delivery: "2 a 3 días",
         description: "Menú digital esencial con logo, categorías, productos, precios y WhatsApp.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791559998/Carta_Y_Men%C3%BA_-_BASICO.png",
         includedFeatureIds: [
           "logo",
           "info_negocio",
@@ -950,6 +962,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.cartaDigital.completo,
         delivery: "3 a 4 días",
         description: "Más productos, fotos en alta resolución, botón de pedidos a WhatsApp y QR para mesas.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791559999/CartaY_Men%C3%BA_-_COMPLETO.png",
         includedFeatureIds: [
           "logo",
           "info_negocio",
@@ -989,6 +1002,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.cartaDigital.premium,
         delivery: "4 a 5 días",
         description: "Experiencia visual gourmet de alta gama, productos destacados y filtros.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791560000/Carta_Y_Men%C3%BA_-_PREMIUN.png",
         includedFeatureIds: [
           "logo",
           "info_negocio",
@@ -1043,7 +1057,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
     subtitle: "Página web de alta conversión para venta o captación de prospectos.",
     description: "Página web de alta conversión para venta o captación de prospectos.",
     deliveryTime: "3-5 Días",
-    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513927/ECENCIAL.png",
     iconName: "Smartphone",
     quotesOnlyFeatures: [
       "Comercio electrónico transaccional masivo con pasarela de pago (A cotizar)",
@@ -1057,6 +1071,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.landingPage.esencial,
         delivery: "3 a 4 días",
         description: "Landing sencilla orientada a presencia digital y contacto directo.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513927/ECENCIAL.png",
         includedFeatureIds: [
           "portada_hero",
           "info_principal",
@@ -1087,6 +1102,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.landingPage.comercial,
         delivery: "4 a 5 días",
         description: "Estructura comercial completa con testimonios, galería, llamados a la acción y formulario.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513927/Comercial.png",
         includedFeatureIds: [
           "portada_hero",
           "info_principal",
@@ -1125,6 +1141,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.landingPage.pro,
         delivery: "5 a 7 días",
         description: "Página web integral con secciones avanzadas, animaciones, integraciones y SEO técnico.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791557128/Pro_Landing.png",
         includedFeatureIds: [
           "portada_hero",
           "info_principal",
@@ -1183,7 +1200,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
     subtitle: "Audio y piezas publicitarias con locución profesional y masterización de sonido.",
     description: "Audio y piezas publicitarias con locución profesional y masterización de sonido.",
     deliveryTime: "2-4 Días",
-    image: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513923/Simple.png",
     iconName: "Volume2",
     variants: [
       { id: "audiovisual", label: "Spot Audiovisual", description: "Edición dinámica de video con música, rótulos animados y locución para redes o pantallas." },
@@ -1200,6 +1217,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.spot.simple,
         delivery: "2 a 3 días",
         description: "Edición básica, música de fondo, locución profesional y formato para redes.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513923/Simple.png",
         includedFeatureIds: [
           "locucion_basica",
           "edicion_basica",
@@ -1222,11 +1240,40 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         ]
       },
       {
+        id: "express",
+        name: "Express",
+        priceInPEN: COMMERCIAL_PRICING_CONFIG.spot.express,
+        delivery: "24 a 48 horas",
+        description: "Producción ágil de spot publicitario con locución comercial y entrega exprés.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513926/Express.png",
+        includedFeatureIds: [
+          "locucion_basica",
+          "edicion_basica",
+          "musica_licencia",
+          "formato_redes",
+          "duracion_corta",
+          "entrega_rapida"
+        ],
+        benefits: [
+          "Locución comercial profesional con entrega preferencial",
+          "Edición ágil de audio y masterización limpia",
+          "Música de fondo libre de regalías comerciales",
+          "Formato optimizado para WhatsApp, radio y redes sociales",
+          "Entrega rápida garantizada en 24 a 48 horas"
+        ],
+        upgradableFeatures: [
+          "Diseño sonoro avanzado",
+          "Adaptación audiovisual para Reels / TikTok",
+          "Subtítulos dinámicos"
+        ]
+      },
+      {
         id: "premium",
         name: "Premium",
         priceInPEN: COMMERCIAL_PRICING_CONFIG.spot.premium,
         delivery: "3 a 4 días",
         description: "Edición avanzada, diseño sonoro, mezcla, subtítulos y adaptación para Reels/TikTok.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513923/Premium.png",
         includedFeatureIds: [
           "locucion_basica",
           "edicion_basica",
@@ -1274,7 +1321,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
     subtitle: "Edición cinemática, corrección de color y formato vertical para redes.",
     description: "Edición cinemática, corrección de color y formato vertical para redes.",
     deliveryTime: "3-5 Días",
-    image: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791557403/Producci%C3%B3n_Audiovisual_Video_-Express.png",
     iconName: "Video",
     quotesOnlyFeatures: [
       "Grabaciones presenciales en locación física con cámara de cine (A cotizar)",
@@ -1288,6 +1335,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.audiovisual.express,
         delivery: "2 a 3 días",
         description: "Edición ágil de video corto para Reels o TikTok con música y cortes limpios.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791557403/Producci%C3%B3n_Audiovisual_Video_-Express.png",
         includedFeatureIds: [
           "edicion_corta",
           "corte_dinamico",
@@ -1314,6 +1362,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.audiovisual.completo,
         delivery: "3 a 5 días",
         description: "Mayor duración, color grading cinematográfico, subtítulos dinámicos y motion graphics.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791557401/Producci%C3%B3n_Audiovisual_Video_-Completo.png",
         includedFeatureIds: [
           "edicion_corta",
           "corte_dinamico",
@@ -1345,6 +1394,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.audiovisual.premium,
         delivery: "5 a 7 días",
         description: "Edición cinemática de alto nivel, múltiples piezas adaptadas, intro/outro y exportación 4K.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791557402/Producci%C3%B3n_Audiovisual_Video_-Premium.png",
         includedFeatureIds: [
           "edicion_corta",
           "corte_dinamico",
@@ -1395,7 +1445,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
     subtitle: "Diseño de logotipos vectoriales originales y paletas cromáticas.",
     description: "Diseño de logotipos vectoriales originales y paletas cromáticas.",
     deliveryTime: "2-4 Días",
-    image: "https://images.unsplash.com/photo-1626785774573-4b799315345d?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513924/Logo.png",
     iconName: "Palette",
     quotesOnlyFeatures: [
       "Registro legal de marcas y patentes comerciales ante el estado (A cotizar)",
@@ -1408,6 +1458,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.branding.logo,
         delivery: "2 a 3 días",
         description: "Diseño de logotipo original con propuestas conceptuales y formatos vectoriales.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513924/Logo.png",
         includedFeatureIds: [
           "propuestas_logo",
           "logotipo_vectorial",
@@ -1434,6 +1485,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.branding.identidad,
         delivery: "3 a 5 días",
         description: "Logotipo con variaciones, paleta Pantone, tipografías corporativas y mockups 3D.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513930/Identidad.png",
         includedFeatureIds: [
           "propuestas_logo",
           "logotipo_vectorial",
@@ -1466,6 +1518,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.branding.completo,
         delivery: "5 a 7 días",
         description: "Identidad completa con manual de marca en PDF, papelería digital y archivos editables.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513930/Branding_Complet.png",
         includedFeatureIds: [
           "propuestas_logo",
           "logotipo_vectorial",
@@ -1517,7 +1570,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
     subtitle: "Diseño de flyers, posts, afiches, banners, historias y fotomontajes de alto impacto visual.",
     description: "Creación de piezas gráficas publicitarias y artes digitales de alto impacto para redes o impresos.",
     deliveryTime: "24-48 Horas",
-    image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop",
+    image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513930/Arte_Esencial.png",
     iconName: "Palette",
     quotesOnlyFeatures: [
       "Campañas publicitarias masivas de más de 10 piezas simultáneas (A cotizar)",
@@ -1531,6 +1584,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.artesMultimedia.esencial,
         delivery: "24 a 48 horas",
         description: "Ideal para flyer sencillo, publicación en redes, historia o banner básico.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513930/Arte_Esencial.png",
         includedFeatureIds: [
           "pieza_grafica_individual",
           "textos_cliente",
@@ -1560,6 +1614,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.artesMultimedia.profesional,
         delivery: "24 a 48 horas",
         description: "Composición profesional con retoque fotográfico, integración de varias imágenes y efectos.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513924/Arte_Profesional.png",
         includedFeatureIds: [
           "pieza_grafica_individual",
           "textos_cliente",
@@ -1595,6 +1650,7 @@ export const SERVICES_CATALOG_DATA: ServiceCatalogItem[] = [
         priceInPEN: COMMERCIAL_PRICING_CONFIG.artesMultimedia.premium,
         delivery: "24 a 48 horas",
         description: "Fotomontaje avanzado, retoque de autor, composición compleja, efectos y variantes.",
+        image: "https://res.cloudinary.com/yzpbyhox/image/upload/v1791513930/Arte_Premium.png",
         includedFeatureIds: [
           "pieza_grafica_individual",
           "textos_cliente",
