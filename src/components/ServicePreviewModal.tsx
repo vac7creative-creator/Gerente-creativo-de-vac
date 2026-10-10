@@ -8,6 +8,7 @@ import { X, Check, Minus, Clock, ShieldCheck, Sparkles, Tag, ChevronLeft, Chevro
 import { ProjectType } from "../types";
 import { SERVICES_CATALOG_DATA, ServiceCatalogItem, PackageItem } from "../data/servicesCatalog";
 import { PORTFOLIO_ITEMS, PortfolioItem } from "../data/portfolioCatalog";
+import { getVacServiceProjectsUrl } from "../config/vacNavigation";
 
 export interface ServiceItem {
   id: string;
@@ -367,24 +368,31 @@ export default function ServicePreviewModal({
               </div>
             </div>
 
-            {/* 3. MUESTRAS DE REFERENCIA & ESTILOS DE AUTOR */}
+            {/* 3. ESTILOS DE REFERENCIA & INSPIRACIÓN (CONCEPTUAL) */}
             {matchingSamples.length > 0 && (
               <div className="space-y-4 pt-2">
-                <div className="flex items-center justify-between border-b border-stone-200/80 dark:border-stone-800 pb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-stone-200/80 dark:border-stone-800 pb-2.5 gap-2">
                   <div className="flex items-center gap-2">
                     <span className="w-4 h-px bg-amber-500" />
                     <h3 className="text-xs uppercase font-space font-bold tracking-[0.2em] text-amber-700 dark:text-amber-400">
-                      Muestras de Referencia & Inspiración
+                      Estilos de Referencia
                     </h3>
                   </div>
-                  <span className="text-[10px] font-space text-stone-500 dark:text-stone-400 font-medium">
-                    {matchingSamples.length} {matchingSamples.length === 1 ? "estilo" : "estilos"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-space px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 font-semibold border border-amber-500/20">
+                      Inspiración para tu proyecto
+                    </span>
+                    <span className="text-[10px] font-space text-stone-500 dark:text-stone-400 font-medium">
+                      {matchingSamples.length} {matchingSamples.length === 1 ? "estilo" : "estilos"}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {matchingSamples.map((sample) => {
                     const isForCurrentPkg = sample.packageId === currentPkg?.id;
+                    const realSampleTargetUrl = getVacServiceProjectsUrl(service.type, sample.demoUrl);
+
                     return (
                       <div
                         key={sample.id}
@@ -406,7 +414,7 @@ export default function ServicePreviewModal({
                           <div className="space-y-1 flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-1">
                               <span className="text-[9px] font-space uppercase px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-amber-700 dark:text-amber-400 font-bold truncate">
-                                Paquete {sample.packageName}
+                                Estilo · Paquete {sample.packageName}
                               </span>
                               {sample.colorHighlights && (
                                 <div className="flex gap-0.5">
@@ -426,14 +434,17 @@ export default function ServicePreviewModal({
                         </div>
 
                         <div className="pt-2 border-t border-stone-100 dark:border-stone-800/80 flex items-center justify-between gap-2">
-                          <button
-                            type="button"
-                            onClick={() => onViewSample && onViewSample(sample)}
+                          {/* Ver muestra: Navega a proyectos y muestras reales de V.A.C. Creative en la MISMA PESTAÑA */}
+                          <a
+                            href={realSampleTargetUrl}
                             className="px-2.5 py-1.5 rounded-lg border border-stone-200 dark:border-stone-800 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 text-[11px] font-space font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                            title={`Ver muestras reales de ${service.title} en V.A.C. Creative`}
                           >
-                            <Eye className="w-3 h-3" />
+                            <Eye className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                             <span>Ver muestra</span>
-                          </button>
+                          </a>
+
+                          {/* Elegir estilo: Permanece en Gerente Creativo para continuar cotización/pedido */}
                           <button
                             type="button"
                             onClick={() => {

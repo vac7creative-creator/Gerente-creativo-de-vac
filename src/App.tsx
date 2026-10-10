@@ -50,6 +50,7 @@ import { parseUrlNavigation, syncUrlParams, syncTabNavigation, ClientTabType } f
 import { SERVICES_CATALOG, MAIN_CATEGORIES, SERVICES_CATALOG_DATA } from "./data/servicesCatalog";
 import { PORTFOLIO_ITEMS, PortfolioItem } from "./data/portfolioCatalog";
 import { CONTACT_CONFIG } from "./config/contact";
+import { getVacMainSiteHomeUrl } from "./config/vacNavigation";
 
 // Icons
 import { 
@@ -68,6 +69,7 @@ import {
   Briefcase, 
   MessageCircle, 
   ArrowRight, 
+  ArrowLeft,
   Cloud, 
   X,
   Palette,
@@ -674,6 +676,23 @@ export default function App() {
         </div>
       )}
 
+      {/* SECONDARY TOP NAVIGATION: Volver a V.A.C. Creative */}
+      <div className="bg-[#F5F2EA] dark:bg-[#0A0908] border-b border-stone-200/80 dark:border-stone-850 px-4 sm:px-6 lg:px-8 py-2 text-xs font-space transition-colors">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+          <a
+            href={getVacMainSiteHomeUrl()}
+            className="inline-flex items-center gap-1.5 text-stone-700 hover:text-stone-950 dark:text-stone-300 dark:hover:text-white font-medium transition-colors group cursor-pointer"
+            title="Volver a la página principal pública de V.A.C. Creative"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 transition-transform group-hover:-translate-x-1" />
+            <span>Volver a V.A.C. Creative</span>
+          </a>
+          <span className="text-[11px] text-stone-500 dark:text-stone-500 hidden sm:inline">
+            Gerente Creativo · Catálogo, Cotizaciones & Seguimiento
+          </span>
+        </div>
+      </div>
+
       {/* LUXURY EDITORIAL HEADER BAR */}
       <nav className="border-b border-stone-200/70 bg-[#FAF8F5]/90 dark:bg-[#0C0B0A]/90 dark:border-stone-800/80 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
@@ -699,7 +718,18 @@ export default function App() {
           </div>
 
           {/* Controls & Mode Switcher */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+
+            {/* Botón secundario de retorno a V.A.C. Creative */}
+            <a
+              href={getVacMainSiteHomeUrl()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-stone-100 hover:bg-stone-200 dark:bg-stone-900 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 hover:text-stone-950 dark:hover:text-white border border-stone-200 dark:border-stone-800 text-xs font-space font-medium transition-all group"
+              title="Volver a la web principal de V.A.C. Creative"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 transition-transform group-hover:-translate-x-0.5" />
+              <span className="hidden md:inline">Volver a V.A.C. Creative</span>
+              <span className="md:hidden">V.A.C.</span>
+            </a>
 
             {/* Direct WhatsApp Concierge */}
             <a
