@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   Calculator, 
   Sparkles, 
@@ -24,24 +24,84 @@ import { CONTACT_CONFIG } from "../config/contact";
 
 interface InstantQuoteCalculatorProps {
   onSelectServiceAndStartOrder: (type: ProjectType, prefilledNotes?: string, packageId?: string) => void;
+  initialServiceType?: ProjectType;
+  initialPackageId?: string;
+  initialVariantId?: string;
 }
 
 export default function InstantQuoteCalculator({
-  onSelectServiceAndStartOrder
+  onSelectServiceAndStartOrder,
+  initialServiceType,
+  initialPackageId,
+  initialVariantId
 }: InstantQuoteCalculatorProps) {
-  const [selectedType, setSelectedType] = useState<ProjectType>(ProjectType.BODA);
-  const [selectedPackageId, setSelectedPackageId] = useState<string>("basico");
-  const [selectedVariantId, setSelectedVariantId] = useState<string>("");
-  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
+  const [selectedType, setSelectedType] = useState<ProjectType>(initialServiceType || ProjectType.BODA);
 
   const currentCatalogItem: ServiceCatalogItem = SERVICES_CATALOG_DATA.find((s) => s.type === selectedType) || SERVICES_CATALOG_DATA[0];
   const packages: PackageItem[] = currentCatalogItem.packages || [];
-  const currentPackage = packages.find((p) => p.id === selectedPackageId) || packages[0];
+
+  const [selectedPackageId, setSelectedPackageId] = useState<string>(() => {
+    if (initialPackageId && packages.some((p) => p.id === initialPackageId)) {
+      return initialPackageId;
+    }
+    return packages[0]?.id || "basico";
+  });
+
   const variants = currentCatalogItem.variants || [];
+  const [selectedVariantId, setSelectedVariantId] = useState<string>(() => {
+    if (initialVariantId && variants.some((v) => v.id === initialVariantId)) {
+      return initialVariantId;
+    }
+    return variants[0]?.id || "";
+  });
+
+  const currentPackage = packages.find((p) => p.id === selectedPackageId) || packages[0];
   const currentVariant = variants.find((v) => v.id === selectedVariantId) || variants[0];
 
-  // When selectedType changes, reset package to first available and filter incompatible addons
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
+
+  const isInitialMount = useRef(true);
+
+  // Sync when initialServiceType changes externally
   useEffect(() => {
+    if (initialServiceType && initialServiceType !== selectedType) {
+      setSelectedType(initialServiceType);
+    }
+  }, [initialServiceType]);
+
+  // Sync when initialPackageId changes externally
+  useEffect(() => {
+    if (initialPackageId) {
+      setSelectedPackageId(initialPackageId);
+    }
+  }, [initialPackageId]);
+
+  // Sync when initialVariantId changes externally
+  useEffect(() => {
+    if (initialVariantId) {
+      setSelectedVariantId(initialVariantId);
+    }
+  }, [initialVariantId]);
+
+  // When selectedType changes, reset package to first available (unless matching initial on mount)
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      // On first mount, respect initial props if valid
+      if (initialPackageId && currentCatalogItem.packages.some((p) => p.id === initialPackageId)) {
+        setSelectedPackageId(initialPackageId);
+      } else if (currentCatalogItem.packages.length > 0) {
+        setSelectedPackageId(currentCatalogItem.packages[0].id);
+      }
+
+      if (initialVariantId && currentCatalogItem.variants?.some((v) => v.id === initialVariantId)) {
+        setSelectedVariantId(initialVariantId);
+      } else if (currentCatalogItem.variants && currentCatalogItem.variants.length > 0) {
+        setSelectedVariantId(currentCatalogItem.variants[0].id);
+      }
+      return;
+    }
+
     if (currentCatalogItem.packages.length > 0) {
       setSelectedPackageId(currentCatalogItem.packages[0].id);
     }

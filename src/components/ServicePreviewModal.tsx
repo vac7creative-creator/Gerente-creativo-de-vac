@@ -27,19 +27,42 @@ interface ServicePreviewModalProps {
   onClose: () => void;
   onOrder: (type: ProjectType, packageId?: string, sampleReference?: string) => void;
   onViewSample?: (sample: PortfolioItem) => void;
+  initialPackageId?: string;
 }
 
 export default function ServicePreviewModal({
   service,
   onClose,
   onOrder,
-  onViewSample
+  onViewSample,
+  initialPackageId
 }: ServicePreviewModalProps) {
-  const [selectedPkgIndex, setSelectedPkgIndex] = useState<number>(0);
-
   const catalogItem: ServiceCatalogItem =
     SERVICES_CATALOG_DATA.find((s) => s.id === service.id || s.type === service.type) || SERVICES_CATALOG_DATA[0];
   const packages: PackageItem[] = catalogItem.packages || [];
+
+  const [selectedPkgIndex, setSelectedPkgIndex] = useState<number>(() => {
+    if (initialPackageId && packages.length > 0) {
+      const norm = initialPackageId.toLowerCase().trim();
+      const idx = packages.findIndex(
+        (p) => p.id.toLowerCase() === norm || p.name.toLowerCase() === norm
+      );
+      if (idx >= 0) return idx;
+    }
+    return 0;
+  });
+
+  React.useEffect(() => {
+    if (initialPackageId && packages.length > 0) {
+      const norm = initialPackageId.toLowerCase().trim();
+      const idx = packages.findIndex(
+        (p) => p.id.toLowerCase() === norm || p.name.toLowerCase() === norm
+      );
+      if (idx >= 0) {
+        setSelectedPkgIndex(idx);
+      }
+    }
+  }, [initialPackageId, packages]);
   const currentPkg: PackageItem | undefined = packages[selectedPkgIndex] || packages[0];
 
   const currentPrice = currentPkg?.priceInPEN != null ? currentPkg.priceInPEN : null;

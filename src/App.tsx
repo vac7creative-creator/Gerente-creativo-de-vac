@@ -43,6 +43,9 @@ import PortfolioSampleModal from "./components/PortfolioSampleModal";
 import HeroFeaturedCarousel from "./components/HeroFeaturedCarousel";
 import CategoryQuickBar from "./components/CategoryQuickBar";
 
+// URL Deeplinking & Routing
+import { parseUrlNavigation, syncUrlParams, ClientTabType } from "./utils/urlNavigation";
+
 // Data
 import { SERVICES_CATALOG, MAIN_CATEGORIES, SERVICES_CATALOG_DATA } from "./data/servicesCatalog";
 import { PORTFOLIO_ITEMS, PortfolioItem } from "./data/portfolioCatalog";
@@ -118,6 +121,12 @@ export default function App() {
   // Client view Navigation Tabs
   const [clientTab, setClientTab] = useState<"catalog" | "quote" | "tracker">("catalog");
   const [portfolioPreviewItem, setPortfolioPreviewItem] = useState<PortfolioItem | null>(null);
+
+  // Deep linking preselection state
+  const [selectedPackageForPreview, setSelectedPackageForPreview] = useState<string | undefined>(undefined);
+  const [quotePreselectedService, setQuotePreselectedService] = useState<ProjectType | undefined>(undefined);
+  const [quotePreselectedPackage, setQuotePreselectedPackage] = useState<string | undefined>(undefined);
+  const [quotePreselectedVariant, setQuotePreselectedVariant] = useState<string | undefined>(undefined);
 
   // View Mode: Client vs Admin
   const [viewMode, setViewMode] = useState<"client" | "admin">("client");
@@ -276,6 +285,7 @@ export default function App() {
     setIsTrackingLoading(true);
     setTrackingErrorMsg("");
     setTrackedResultData(null);
+    syncUrlParams({ tab: "tracker", code: cleanCode });
 
     try {
       const data = await getPublicTrackingByCode(cleanCode);
@@ -434,6 +444,91 @@ export default function App() {
     });
     setFormModalOpen(true);
   };
+
+  // Helper to change client navigation tab and sync URL query parameters
+  const changeClientTab = (tab: ClientTabType) => {
+    setClientTab(tab);
+    syncUrlParams({ tab });
+  };
+
+  // Helper to open service preview and reflect in URL
+  const openServicePreview = (service: any, packageId?: string) => {
+    setSelectedServiceForPreview(service);
+    setSelectedPackageForPreview(packageId);
+    syncUrlParams({
+      service: service.id,
+      package: packageId || null
+    });
+  };
+
+  // Helper to close service preview and remove from URL
+  const closeServicePreview = () => {
+    setSelectedServiceForPreview(null);
+    setSelectedPackageForPreview(undefined);
+    syncUrlParams({
+      service: null,
+      package: null
+    });
+  };
+
+  // 1b. Deep linking & URL Query Parameters Observer
+  useEffect(() => {
+    const applyUrlState = async () => {
+      const parsed = parseUrlNavigation();
+
+      // 1. Sincronizar pestaña activa
+      setClientTab(parsed.tab);
+
+      // 2. Si se proporciona código de seguimiento
+      if (parsed.trackingCode) {
+        setTrackingInputCode(parsed.trackingCode);
+        setClientTab("tracker");
+        setIsTrackingLoading(true);
+        setTrackingErrorMsg("");
+        setTrackedResultData(null);
+        try {
+          const data = await getPublicTrackingByCode(parsed.trackingCode);
+          if (data) {
+            setTrackedResultData(data);
+          } else {
+            setTrackingErrorMsg("No encontramos un proyecto asociado a ese código. Verifica que lo hayas escrito correctamente.");
+          }
+        } catch (err: any) {
+          setTrackingErrorMsg(err?.message || "Error al consultar el código de seguimiento.");
+        } finally {
+          setIsTrackingLoading(false);
+        }
+      }
+
+      // 3. Si se proporciona servicio específico
+      if (parsed.projectType) {
+        if (parsed.shouldOpenOrderModal) {
+          handleStartNewOrder(parsed.projectType, undefined, parsed.packageId);
+        } else if (parsed.tab === "quote") {
+          setQuotePreselectedService(parsed.projectType);
+          if (parsed.packageId) setQuotePreselectedPackage(parsed.packageId);
+          if (parsed.variantId) setQuotePreselectedVariant(parsed.variantId);
+        } else {
+          // Vista catálogo
+          if (parsed.serviceItem) {
+            setSelectedServiceForPreview(parsed.serviceItem);
+            setSelectedPackageForPreview(parsed.packageId);
+          }
+        }
+      }
+    };
+
+    applyUrlState();
+
+    const onPopState = () => {
+      applyUrlState();
+    };
+
+    window.addEventListener("popstate", onPopState);
+    return () => {
+      window.removeEventListener("popstate", onPopState);
+    };
+  }, []);
 
   // Database actions callbacks
   const handleImportBackup = async (importedList: Project[]) => {
@@ -664,7 +759,7 @@ export default function App() {
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2">
                     {/* Botón Principal Dominante: Cotizar ahora */}
                     <button
-                      onClick={() => setClientTab("quote")}
+                      onClick={() => changeClientTab("quote")}
                       className="px-7 py-3.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs uppercase tracking-[0.12em] rounded-full transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5 cursor-pointer flex items-center justify-center gap-2"
                     >
                       <span>Cotizar ahora</span>
@@ -674,7 +769,7 @@ export default function App() {
                     {/* Botón Secundario: Explorar servicios */}
                     <button
                       onClick={() => {
-                        setClientTab("catalog");
+                        changeClientTab("catalog");
                         const el = document.getElementById("catalog-section-anchor");
                         if (el) el.scrollIntoView({ behavior: "smooth" });
                       }}
@@ -685,7 +780,7 @@ export default function App() {
 
                     {/* Botón Tercero: Rastrear proyecto */}
                     <button
-                      onClick={() => setClientTab("tracker")}
+                      onClick={() => changeClientTab("tracker")}
                       className="px-5 py-3.5 text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-white text-xs uppercase tracking-wider font-semibold cursor-pointer transition-colors flex items-center justify-center gap-1.5"
                     >
                       <Compass className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
@@ -713,7 +808,7 @@ export default function App() {
                 {/* Columna Derecha: Carrusel Visual de Servicios Destacados */}
                 <div className="lg:col-span-6 w-full">
                   <HeroFeaturedCarousel
-                    onSelectService={(service) => setSelectedServiceForPreview(service)}
+                    onSelectService={(service) => openServicePreview(service)}
                   />
                 </div>
 
@@ -722,7 +817,7 @@ export default function App() {
 
             {/* FRANJA RÁPIDA DE CATEGORÍAS "¿QUÉ QUIERES CREAR?" */}
             <CategoryQuickBar
-              onSelectService={(service) => setSelectedServiceForPreview(service)}
+              onSelectService={(service) => openServicePreview(service)}
               onSelectProjectType={(type) => handleStartNewOrder(type)}
             />
           </div>
@@ -732,7 +827,7 @@ export default function App() {
           {/* EDITORIAL SUB-NAVIGATION TABS (ONLY 3 TABS) */}
           <div className="flex items-center justify-start gap-3 border-b border-stone-200/80 dark:border-stone-800 pb-4 overflow-x-auto">
             <button
-              onClick={() => setClientTab("catalog")}
+              onClick={() => changeClientTab("catalog")}
               className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-[0.08em] transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
                 clientTab === "catalog"
                   ? "bg-stone-950 text-white dark:bg-amber-400 dark:text-stone-950 shadow-md"
@@ -743,7 +838,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setClientTab("quote")}
+              onClick={() => changeClientTab("quote")}
               className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-[0.08em] transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
                 clientTab === "quote"
                   ? "bg-stone-950 text-white dark:bg-amber-400 dark:text-stone-950 shadow-md"
@@ -754,7 +849,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setClientTab("tracker")}
+              onClick={() => changeClientTab("tracker")}
               className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-[0.08em] transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
                 clientTab === "tracker"
                   ? "bg-stone-950 text-white dark:bg-amber-400 dark:text-stone-950 shadow-md"
@@ -795,7 +890,7 @@ export default function App() {
                   {SERVICES_CATALOG.map((service, idx) => (
                     <div 
                       key={service.id}
-                      onClick={() => setSelectedServiceForPreview(service)}
+                      onClick={() => openServicePreview(service)}
                       id={`service-block-${service.id}`}
                       className="group bg-white dark:bg-[#141311] border border-stone-200/80 dark:border-stone-800/80 rounded-3xl overflow-hidden cursor-pointer shadow-sm hover:shadow-xl hover:border-amber-500/50 transition-all duration-500 flex flex-col justify-between"
                     >
@@ -876,7 +971,7 @@ export default function App() {
                   {MAIN_CATEGORIES.filter(c => !c.isSubCatalogTrigger).map((cat) => (
                     <div 
                       key={cat.id}
-                      onClick={() => setSelectedServiceForPreview(cat)}
+                      onClick={() => openServicePreview(cat)}
                       className="group bg-white dark:bg-[#141311] border border-stone-200/80 dark:border-stone-800/80 rounded-3xl p-6 cursor-pointer shadow-sm hover:shadow-lg hover:border-amber-500/40 transition-all duration-300 flex flex-col justify-between space-y-6"
                     >
                       <div className="space-y-4">
@@ -922,6 +1017,9 @@ export default function App() {
           {clientTab === "quote" && (
             <div className="space-y-6 animate-fade-in">
               <InstantQuoteCalculator
+                initialServiceType={quotePreselectedService}
+                initialPackageId={quotePreselectedPackage}
+                initialVariantId={quotePreselectedVariant}
                 onSelectServiceAndStartOrder={(type, notes, packageId) => {
                   handleStartNewOrder(type, notes, packageId);
                 }}
@@ -1216,7 +1314,8 @@ export default function App() {
       {selectedServiceForPreview && (
         <ServicePreviewModal
           service={selectedServiceForPreview}
-          onClose={() => setSelectedServiceForPreview(null)}
+          initialPackageId={selectedPackageForPreview}
+          onClose={closeServicePreview}
           onOrder={(type, packageId, sampleReference) => {
             handleStartNewOrder(
               type, 
