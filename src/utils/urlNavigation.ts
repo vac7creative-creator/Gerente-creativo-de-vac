@@ -333,6 +333,67 @@ export function parseUrlNavigation(): ParsedUrlNavigation {
 }
 
 /**
+ * Lista de parámetros de URL específicos de servicios, paquetes, variantes y acciones
+ */
+const SERVICE_SPECIFIC_QUERY_KEYS = [
+  "service", "servicio", "s", "tipo",
+  "package", "paquete", "plan", "pkg", "p", "nivel",
+  "variant", "variante", "v",
+  "action", "accion", "pedido", "order", "open"
+];
+
+/**
+ * Limpia de la URL los parámetros de servicio, paquete, variante y acciones de modal
+ */
+export function removeServiceQueryParams(url: URL) {
+  SERVICE_SPECIFIC_QUERY_KEYS.forEach((k) => url.searchParams.delete(k));
+}
+
+/**
+ * Sincroniza la URL al cambiar de pestaña manualmente.
+ * - tracker: ?tab=tracker (o con ?code= si ya se consultó)
+ * - catalog: ?tab=catalog
+ * - quote: ?tab=quote (sin parámetros de servicio)
+ * Limpia automáticamente service, package, variant, action.
+ */
+export function syncTabNavigation(tab: ClientTabType, code?: string | null) {
+  if (typeof window === "undefined") return;
+
+  const url = new URL(window.location.href);
+
+  // 1. Limpiar siempre parámetros de servicio/paquete/variante/acción al cambiar de pestaña manualmente
+  removeServiceQueryParams(url);
+
+  // 2. Manejo según la pestaña
+  if (tab === "tracker") {
+    url.searchParams.set("tab", "tracker");
+    if (code && code.trim()) {
+      url.searchParams.set("code", code.trim());
+    } else {
+      url.searchParams.delete("code");
+      url.searchParams.delete("codigo");
+      url.searchParams.delete("track");
+      url.searchParams.delete("tracking");
+    }
+  } else if (tab === "quote") {
+    url.searchParams.set("tab", "quote");
+    url.searchParams.delete("code");
+    url.searchParams.delete("codigo");
+    url.searchParams.delete("track");
+    url.searchParams.delete("tracking");
+  } else {
+    // catalog
+    url.searchParams.set("tab", "catalog");
+    url.searchParams.delete("code");
+    url.searchParams.delete("codigo");
+    url.searchParams.delete("track");
+    url.searchParams.delete("tracking");
+  }
+
+  window.history.replaceState({}, "", url.toString());
+}
+
+/**
  * Sincroniza la URL en el navegador de manera limpia y sin recargar la página
  */
 export function syncUrlParams(updates: {
@@ -341,18 +402,18 @@ export function syncUrlParams(updates: {
   package?: string | null;
   variant?: string | null;
   code?: string | null;
+  cleanServiceParams?: boolean;
 }) {
   if (typeof window === "undefined") return;
 
   const url = new URL(window.location.href);
 
+  if (updates.cleanServiceParams) {
+    removeServiceQueryParams(url);
+  }
+
   if (updates.tab !== undefined) {
-    if (updates.tab === "catalog") {
-      // Opcional: si es catalog podemos mantener ?tab=catalog o quitarlo si no hay otros params
-      url.searchParams.set("tab", "catalog");
-    } else {
-      url.searchParams.set("tab", updates.tab);
-    }
+    url.searchParams.set("tab", updates.tab);
   }
 
   if (updates.service !== undefined) {
@@ -361,6 +422,8 @@ export function syncUrlParams(updates: {
     } else {
       url.searchParams.delete("service");
       url.searchParams.delete("servicio");
+      url.searchParams.delete("s");
+      url.searchParams.delete("tipo");
     }
   }
 
@@ -370,6 +433,10 @@ export function syncUrlParams(updates: {
     } else {
       url.searchParams.delete("package");
       url.searchParams.delete("paquete");
+      url.searchParams.delete("plan");
+      url.searchParams.delete("pkg");
+      url.searchParams.delete("p");
+      url.searchParams.delete("nivel");
     }
   }
 
@@ -379,6 +446,7 @@ export function syncUrlParams(updates: {
     } else {
       url.searchParams.delete("variant");
       url.searchParams.delete("variante");
+      url.searchParams.delete("v");
     }
   }
 
@@ -388,8 +456,11 @@ export function syncUrlParams(updates: {
     } else {
       url.searchParams.delete("code");
       url.searchParams.delete("codigo");
+      url.searchParams.delete("track");
+      url.searchParams.delete("tracking");
     }
   }
 
   window.history.replaceState({}, "", url.toString());
 }
+

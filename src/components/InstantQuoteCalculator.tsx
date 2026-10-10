@@ -35,84 +35,92 @@ export default function InstantQuoteCalculator({
   initialPackageId,
   initialVariantId
 }: InstantQuoteCalculatorProps) {
-  const [selectedType, setSelectedType] = useState<ProjectType>(initialServiceType || ProjectType.BODA);
+  // Helper functions to resolve package and variant safely respecting priorities:
+  // Prioridad: 1) prop/solicitado si existe y es válido -> 2) primer elemento válido -> 3) default
+  const resolvePackage = (catalog: ServiceCatalogItem, preferredPkgId?: string): string => {
+    if (preferredPkgId && catalog.packages?.some((p) => p.id === preferredPkgId)) {
+      return preferredPkgId;
+    }
+    return catalog.packages?.[0]?.id || "basico";
+  };
 
-  const currentCatalogItem: ServiceCatalogItem = SERVICES_CATALOG_DATA.find((s) => s.type === selectedType) || SERVICES_CATALOG_DATA[0];
-  const packages: PackageItem[] = currentCatalogItem.packages || [];
+  const resolveVariant = (catalog: ServiceCatalogItem, preferredVarId?: string): string => {
+    if (preferredVarId && catalog.variants?.some((v) => v.id === preferredVarId)) {
+      return preferredVarId;
+    }
+    return catalog.variants?.[0]?.id || "";
+  };
+
+  const effectiveInitialType = initialServiceType || ProjectType.BODA;
+  const initialCatalog = SERVICES_CATALOG_DATA.find((s) => s.type === effectiveInitialType) || SERVICES_CATALOG_DATA[0];
+
+  const [selectedType, setSelectedType] = useState<ProjectType>(effectiveInitialType);
 
   const [selectedPackageId, setSelectedPackageId] = useState<string>(() => {
-    if (initialPackageId && packages.some((p) => p.id === initialPackageId)) {
-      return initialPackageId;
-    }
-    return packages[0]?.id || "basico";
+    return resolvePackage(initialCatalog, initialPackageId);
   });
 
-  const variants = currentCatalogItem.variants || [];
   const [selectedVariantId, setSelectedVariantId] = useState<string>(() => {
-    if (initialVariantId && variants.some((v) => v.id === initialVariantId)) {
-      return initialVariantId;
-    }
-    return variants[0]?.id || "";
+    return resolveVariant(initialCatalog, initialVariantId);
   });
-
-  const currentPackage = packages.find((p) => p.id === selectedPackageId) || packages[0];
-  const currentVariant = variants.find((v) => v.id === selectedVariantId) || variants[0];
 
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
 
-  const isInitialMount = useRef(true);
+  // Función unificada cuando cambia el servicio (sea por clic del usuario o por cambio de props externas).
+  // Cumple estrictamente con los 7 pasos requeridos:
+  // 1. actualizar selectedType;
+  // 2. buscar los paquetes válidos del nuevo servicio;
+  // 3. si initialPackageId existe y es válido para ese servicio, respetarlo;
+  // 4. de lo contrario usar el primer paquete válido;
+  // 5. si initialVariantId existe y es válido, respetarlo;
+  // 6. de lo contrario utilizar la primera variante válida;
+  // 7. limpiar addons incompatibles.
+  const handleSelectServiceType = (newType: ProjectType, explicitPkg?: string, explicitVar?: string) => {
+    setSelectedType(newType);
 
-  // Sync when initialServiceType changes externally
-  useEffect(() => {
-    if (initialServiceType && initialServiceType !== selectedType) {
-      setSelectedType(initialServiceType);
-    }
-  }, [initialServiceType]);
+    const newCatalogItem = SERVICES_CATALOG_DATA.find((s) => s.type === newType) || SERVICES_CATALOG_DATA[0];
 
-  // Sync when initialPackageId changes externally
-  useEffect(() => {
-    if (initialPackageId) {
-      setSelectedPackageId(initialPackageId);
-    }
-  }, [initialPackageId]);
+    // 3 y 4. Paquetes válidos
+    const candidatePkg = explicitPkg || initialPackageId;
+    const nextPkg = resolvePackage(newCatalogItem, candidatePkg);
+    setSelectedPackageId(nextPkg);
 
-  // Sync when initialVariantId changes externally
-  useEffect(() => {
-    if (initialVariantId) {
-      setSelectedVariantId(initialVariantId);
-    }
-  }, [initialVariantId]);
+    // 5 y 6. Variantes válidas
+    const candidateVar = explicitVar || initialVariantId;
+    const nextVar = resolveVariant(newCatalogItem, candidateVar);
+    setSelectedVariantId(nextVar);
 
-  // When selectedType changes, reset package to first available (unless matching initial on mount)
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      // On first mount, respect initial props if valid
-      if (initialPackageId && currentCatalogItem.packages.some((p) => p.id === initialPackageId)) {
-        setSelectedPackageId(initialPackageId);
-      } else if (currentCatalogItem.packages.length > 0) {
-        setSelectedPackageId(currentCatalogItem.packages[0].id);
-      }
-
-      if (initialVariantId && currentCatalogItem.variants?.some((v) => v.id === initialVariantId)) {
-        setSelectedVariantId(initialVariantId);
-      } else if (currentCatalogItem.variants && currentCatalogItem.variants.length > 0) {
-        setSelectedVariantId(currentCatalogItem.variants[0].id);
-      }
-      return;
-    }
-
-    if (currentCatalogItem.packages.length > 0) {
-      setSelectedPackageId(currentCatalogItem.packages[0].id);
-    }
-    if (currentCatalogItem.variants && currentCatalogItem.variants.length > 0) {
-      setSelectedVariantId(currentCatalogItem.variants[0].id);
-    } else {
-      setSelectedVariantId("");
-    }
-    const validAddonIds = currentCatalogItem.addons.map((a) => a.id);
+    // 7. Limpiar addons incompatibles
+    const validAddonIds = newCatalogItem.addons.map((a) => a.id);
     setSelectedAddons((prev) => prev.filter((id) => validAddonIds.includes(id)));
-  }, [selectedType]);
+  };
+
+  // Monitorear cambios en props externas (URL / deep links) de manera atómica, evitando condiciones de carrera
+  const prevInitialService = useRef(initialServiceType);
+  const prevInitialPackage = useRef(initialPackageId);
+  const prevInitialVariant = useRef(initialVariantId);
+
+  useEffect(() => {
+    const serviceChanged = initialServiceType !== prevInitialService.current;
+    const packageChanged = initialPackageId !== prevInitialPackage.current;
+    const variantChanged = initialVariantId !== prevInitialVariant.current;
+
+    prevInitialService.current = initialServiceType;
+    prevInitialPackage.current = initialPackageId;
+    prevInitialVariant.current = initialVariantId;
+
+    if (serviceChanged || packageChanged || variantChanged) {
+      const nextType = initialServiceType || selectedType;
+      handleSelectServiceType(nextType, initialPackageId, initialVariantId);
+    }
+  }, [initialServiceType, initialPackageId, initialVariantId]);
+
+  const currentCatalogItem: ServiceCatalogItem = SERVICES_CATALOG_DATA.find((s) => s.type === selectedType) || SERVICES_CATALOG_DATA[0];
+  const packages: PackageItem[] = currentCatalogItem.packages || [];
+  const variants = currentCatalogItem.variants || [];
+
+  const currentPackage = packages.find((p) => p.id === selectedPackageId) || packages[0];
+  const currentVariant = variants.find((v) => v.id === selectedVariantId) || variants[0];
 
   const basePricePEN = currentPackage?.priceInPEN ?? (currentCatalogItem.packages[0]?.priceInPEN ?? 0);
 
@@ -205,7 +213,7 @@ export default function InstantQuoteCalculator({
                   <button
                     key={service.type}
                     type="button"
-                    onClick={() => setSelectedType(service.type)}
+                    onClick={() => handleSelectServiceType(service.type)}
                     className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between space-y-2 ${
                       isSelected
                         ? "border-amber-500 bg-amber-500/10 dark:bg-amber-500/15 shadow-sm"

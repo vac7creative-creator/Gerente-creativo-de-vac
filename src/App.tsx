@@ -44,7 +44,7 @@ import HeroFeaturedCarousel from "./components/HeroFeaturedCarousel";
 import CategoryQuickBar from "./components/CategoryQuickBar";
 
 // URL Deeplinking & Routing
-import { parseUrlNavigation, syncUrlParams, ClientTabType } from "./utils/urlNavigation";
+import { parseUrlNavigation, syncUrlParams, syncTabNavigation, ClientTabType } from "./utils/urlNavigation";
 
 // Data
 import { SERVICES_CATALOG, MAIN_CATEGORIES, SERVICES_CATALOG_DATA } from "./data/servicesCatalog";
@@ -118,19 +118,34 @@ export default function App() {
   const [activePromptProject, setActivePromptProject] = useState<Project | undefined>(undefined);
   const [isDatabaseOpen, setIsDatabaseOpen] = useState(false);
 
+  // Pre-parse URL navigation parameters synchronously for instantaneous correct initial render
+  const initialNav = typeof window !== "undefined" ? parseUrlNavigation() : null;
+
   // Client view Navigation Tabs
-  const [clientTab, setClientTab] = useState<"catalog" | "quote" | "tracker">("catalog");
+  const [clientTab, setClientTab] = useState<"catalog" | "quote" | "tracker">(
+    initialNav?.tab || "catalog"
+  );
   const [portfolioPreviewItem, setPortfolioPreviewItem] = useState<PortfolioItem | null>(null);
 
   // Deep linking preselection state
-  const [selectedPackageForPreview, setSelectedPackageForPreview] = useState<string | undefined>(undefined);
-  const [quotePreselectedService, setQuotePreselectedService] = useState<ProjectType | undefined>(undefined);
-  const [quotePreselectedPackage, setQuotePreselectedPackage] = useState<string | undefined>(undefined);
-  const [quotePreselectedVariant, setQuotePreselectedVariant] = useState<string | undefined>(undefined);
+  const [selectedPackageForPreview, setSelectedPackageForPreview] = useState<string | undefined>(
+    initialNav?.tab === "catalog" ? initialNav?.packageId : undefined
+  );
+  const [quotePreselectedService, setQuotePreselectedService] = useState<ProjectType | undefined>(
+    initialNav?.tab === "quote" ? initialNav?.projectType : undefined
+  );
+  const [quotePreselectedPackage, setQuotePreselectedPackage] = useState<string | undefined>(
+    initialNav?.tab === "quote" ? initialNav?.packageId : undefined
+  );
+  const [quotePreselectedVariant, setQuotePreselectedVariant] = useState<string | undefined>(
+    initialNav?.tab === "quote" ? initialNav?.variantId : undefined
+  );
 
   // View Mode: Client vs Admin
   const [viewMode, setViewMode] = useState<"client" | "admin">("client");
-  const [selectedServiceForPreview, setSelectedServiceForPreview] = useState<any | null>(null);
+  const [selectedServiceForPreview, setSelectedServiceForPreview] = useState<any | null>(
+    initialNav?.tab === "catalog" ? initialNav?.serviceItem || null : null
+  );
   
   // Progress tracker inputs
   const [progressEmailInput, setProgressEmailInput] = useState("");
@@ -445,10 +460,24 @@ export default function App() {
     setFormModalOpen(true);
   };
 
-  // Helper to change client navigation tab and sync URL query parameters
+  // Helper to change client navigation tab and cleanly wipe service/package/variant params
   const changeClientTab = (tab: ClientTabType) => {
     setClientTab(tab);
-    syncUrlParams({ tab });
+
+    // Limpiar preselección en estado al navegar manualmente entre pestañas
+    setQuotePreselectedService(undefined);
+    setQuotePreselectedPackage(undefined);
+    setQuotePreselectedVariant(undefined);
+    setSelectedServiceForPreview(null);
+    setSelectedPackageForPreview(undefined);
+
+    // Limpiar parámetros de la URL según las reglas estrictas:
+    // - si pasa a tracker: URL debe ser solo ?tab=tracker (o con code si ya consultó)
+    // - si pasa a catalog: URL debe ser solo ?tab=catalog
+    // - si pasa a quote desde el menú sin especificar servicio: URL debe ser solo ?tab=quote
+    // - los parámetros específicos del servicio (service, package, variant, action) deben limpiarse
+    const existingCode = tab === "tracker" && trackedResultData ? trackingInputCode : undefined;
+    syncTabNavigation(tab, existingCode);
   };
 
   // Helper to open service preview and reflect in URL
@@ -456,6 +485,7 @@ export default function App() {
     setSelectedServiceForPreview(service);
     setSelectedPackageForPreview(packageId);
     syncUrlParams({
+      tab: "catalog",
       service: service.id,
       package: packageId || null
     });
@@ -466,8 +496,11 @@ export default function App() {
     setSelectedServiceForPreview(null);
     setSelectedPackageForPreview(undefined);
     syncUrlParams({
+      tab: "catalog",
       service: null,
-      package: null
+      package: null,
+      variant: null,
+      cleanServiceParams: true
     });
   };
 
@@ -506,14 +539,24 @@ export default function App() {
           handleStartNewOrder(parsed.projectType, undefined, parsed.packageId);
         } else if (parsed.tab === "quote") {
           setQuotePreselectedService(parsed.projectType);
-          if (parsed.packageId) setQuotePreselectedPackage(parsed.packageId);
-          if (parsed.variantId) setQuotePreselectedVariant(parsed.variantId);
+          setQuotePreselectedPackage(parsed.packageId);
+          setQuotePreselectedVariant(parsed.variantId);
         } else {
           // Vista catálogo
           if (parsed.serviceItem) {
             setSelectedServiceForPreview(parsed.serviceItem);
             setSelectedPackageForPreview(parsed.packageId);
           }
+        }
+      } else {
+        // Si no hay parámetros de servicio en la URL, asegurarse de limpiar preselección
+        if (parsed.tab === "quote") {
+          setQuotePreselectedService(undefined);
+          setQuotePreselectedPackage(undefined);
+          setQuotePreselectedVariant(undefined);
+        } else if (parsed.tab === "catalog") {
+          setSelectedServiceForPreview(null);
+          setSelectedPackageForPreview(undefined);
         }
       }
     };
