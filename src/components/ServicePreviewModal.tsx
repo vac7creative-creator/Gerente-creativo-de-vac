@@ -81,23 +81,34 @@ export default function ServicePreviewModal({
     setSelectedPkgIndex((prev) => (prev - 1 + packages.length) % packages.length);
   };
 
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [service.id, currentPkg?.id]);
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div 
+      ref={scrollContainerRef}
+      className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-md flex justify-center items-start md:items-center p-0 sm:p-4"
+    >
       <div 
         id="service-preview-overlay"
-        className="relative max-w-5xl w-full bg-[#FAF9F5] dark:bg-[#121110] text-stone-900 dark:text-stone-100 rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row border border-stone-200/80 dark:border-stone-800 animate-fade-in"
+        className="relative max-w-5xl w-full bg-[#FAF9F5] dark:bg-[#121110] text-stone-900 dark:text-stone-100 rounded-none sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row border-0 sm:border border-stone-200/80 dark:border-stone-800 animate-fade-in my-0 md:my-auto"
       >
         <button
           onClick={onClose}
           id="close-preview-btn"
-          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/40 hover:bg-black/60 text-white md:bg-stone-100 md:hover:bg-stone-200 md:text-stone-700 dark:md:bg-stone-800 dark:md:text-stone-200 transition-colors cursor-pointer"
+          className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 z-30 p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white md:bg-stone-100 md:hover:bg-stone-200 md:text-stone-700 dark:md:bg-stone-800 dark:md:text-stone-200 transition-colors cursor-pointer shadow-md"
           title="Cerrar vista previa"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* LEFT COLUMN: Immersive visual presentation */}
-        <div className="relative w-full md:w-5/12 min-h-[460px] md:min-h-[640px] flex flex-col justify-end p-6 md:p-8 overflow-hidden select-none bg-stone-950">
+        <div className="relative w-full md:w-5/12 h-[88dvh] sm:h-[92dvh] md:h-auto md:min-h-[640px] flex flex-col justify-between md:justify-end p-4 sm:p-6 md:p-8 overflow-hidden select-none bg-stone-950">
           {/* Ambient diffuse continuation sampling bottom palette of the active sample */}
           <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
             <img 
@@ -112,8 +123,44 @@ export default function ServicePreviewModal({
             <div className="absolute inset-0 bg-stone-950/40 pointer-events-none" />
           </div>
 
-          {/* Main sample image: begins from very top edge, spans 100% full width, natural aspect ratio */}
-          <div className="absolute top-0 inset-x-0 z-[1] pointer-events-none overflow-hidden">
+          {/* VISTA MÓVIL (< md): ENCABEZADO COMPACTO SUPERIOR */}
+          <div className="md:hidden relative z-10 flex items-center justify-between gap-3 pr-12 shrink-0">
+            <div className="space-y-0.5 min-w-0">
+              <span className="text-[9px] bg-amber-500 text-stone-950 font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full inline-block shadow-sm">
+                {currentPkg?.name ? `Paquete ${currentPkg.name}` : "V.A.C. Creative"}
+              </span>
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight leading-tight line-clamp-1">
+                {service.title}
+              </h2>
+            </div>
+            <div className="shrink-0 text-right">
+              <span className="text-amber-400 font-mono text-xs sm:text-sm font-bold bg-stone-900/90 border border-amber-500/50 px-2.5 py-1 rounded-full inline-block shadow-md">
+                {currentPrice != null ? `S/ ${currentPrice}` : "A cotizar"}
+              </span>
+            </div>
+          </div>
+
+          {/* VISTA MÓVIL (< md): AFICHE VERTICAL PROTAGONISTA A CASI TODA LA ALTURA, CENTRADO Y SIN DEFORMAR */}
+          <div className="md:hidden flex-1 flex items-center justify-center my-auto py-2 px-2 z-10 relative overflow-hidden min-h-0">
+            <img 
+              key={`mobile-${activeImage}`}
+              src={activeImage} 
+              alt={`${service.title} - ${currentPkg?.name || ""}`} 
+              referrerPolicy="no-referrer"
+              className="h-full w-auto max-h-[68dvh] sm:max-h-[72dvh] max-w-full object-contain rounded-2xl shadow-2xl ring-1 ring-white/10 mx-auto block animate-fade-in transition-all duration-500"
+            />
+          </div>
+
+          {/* VISTA MÓVIL (< md): INDICADOR DISCRETO PARA ENCONTRAR PAQUETES AL DESLIZAR */}
+          <div className="md:hidden relative z-10 flex flex-col items-center justify-center pb-2 pt-1 text-center shrink-0">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-space font-medium text-stone-300/90 bg-stone-900/80 backdrop-blur-md px-3.5 py-1 rounded-full border border-stone-800 shadow-sm">
+              <span>Desliza para ver paquetes</span>
+              <span className="text-amber-400 text-xs animate-bounce font-bold">↓</span>
+            </span>
+          </div>
+
+          {/* VISTA ESCRITORIO (md: INTACTA): Main sample image: begins from very top edge, spans 100% full width, natural aspect ratio */}
+          <div className="hidden md:block absolute top-0 inset-x-0 z-[1] pointer-events-none overflow-hidden">
             <div className="relative w-full">
               <img 
                 key={`main-${activeImage}`}
@@ -127,11 +174,11 @@ export default function ServicePreviewModal({
             </div>
           </div>
 
-          {/* Deep gradient overlay spanning the lower 75% for absolute text readability and seamless bottom fusion */}
-          <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-stone-950 via-stone-950/90 via-50% to-transparent pointer-events-none z-[2]" />
+          {/* VISTA ESCRITORIO (md: INTACTA): Deep gradient overlay spanning the lower 75% for absolute text readability */}
+          <div className="hidden md:block absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-stone-950 via-stone-950/90 via-50% to-transparent pointer-events-none z-[2]" />
 
-          {/* Text and badges overlay positioned legibly in the lower zone */}
-          <div className="relative z-10 space-y-3 mt-auto">
+          {/* VISTA ESCRITORIO (md: INTACTA): Text and badges overlay positioned legibly in the lower zone */}
+          <div className="hidden md:block relative z-10 space-y-3 mt-auto">
             <span className="text-[10px] bg-amber-500 text-stone-950 font-bold uppercase tracking-[0.16em] px-3 py-1 rounded-full inline-block shadow-sm">
               V.A.C. Creative Edition
             </span>
@@ -156,7 +203,7 @@ export default function ServicePreviewModal({
         </div>
 
         {/* RIGHT COLUMN: Splendid details & Package Selector */}
-        <div className="w-full md:w-7/12 p-6 md:p-10 flex flex-col justify-between overflow-y-auto max-h-[90vh] md:max-h-[600px] lg:max-h-[700px]">
+        <div className="w-full md:w-7/12 p-5 sm:p-6 md:p-10 flex flex-col justify-between overflow-y-visible md:overflow-y-auto max-h-none md:max-h-[600px] lg:max-h-[700px]">
           <div className="space-y-8">
             
             {/* PACKAGE CAROUSEL / SELECTOR (IF MULTIPLE PACKAGES) */}

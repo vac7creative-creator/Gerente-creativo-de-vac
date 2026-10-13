@@ -42,7 +42,9 @@ import {
   ArrowRight,
   Loader2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { SERVICES_CATALOG_DATA, ServiceCatalogItem, PackageItem, isFeatureActive } from "../data/servicesCatalog";
 import { CurrencyCode, detectUserCurrency, formatCurrencyPrice } from "../utils/currency";
@@ -135,6 +137,7 @@ export default function ProjectForm({
   const [activeCreatedAt] = useState<string>(() => project?.createdAt || new Date().toISOString());
   const [uploadSuccessSummary, setUploadSuccessSummary] = useState<string>("");
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [isMobileSummaryOpen, setIsMobileSummaryOpen] = useState(false);
 
   // Prevenir cierre accidental si hay subida en curso
   useEffect(() => {
@@ -968,16 +971,16 @@ export default function ProjectForm({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6">
-      <div className="relative max-w-6xl w-full bg-[#FAF9F5] dark:bg-[#121110] text-stone-900 dark:text-stone-100 rounded-3xl shadow-2xl border border-stone-200/80 dark:border-stone-800 flex flex-col max-h-[92vh] animate-fade-in overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-6">
+      <div className="relative max-w-6xl w-full bg-[#FAF9F5] dark:bg-[#121110] text-stone-900 dark:text-stone-100 rounded-3xl shadow-2xl border border-stone-200/80 dark:border-stone-800 flex flex-col max-h-[96dvh] sm:max-h-[92vh] animate-fade-in overflow-hidden">
         
         {/* HEADER BAR */}
-        <div className="px-6 py-5 border-b border-stone-200/80 dark:border-stone-800 flex items-center justify-between bg-white dark:bg-[#161412]">
+        <div className="px-4 py-3 sm:px-6 sm:py-5 border-b border-stone-200/80 dark:border-stone-800 flex items-center justify-between bg-white dark:bg-[#161412]">
           <div className="space-y-0.5">
             <span className="text-[10px] font-space font-bold uppercase tracking-[0.25em] text-amber-700 dark:text-amber-400">
               {project ? "Modificar Ficha de Pedido" : "Nuevo Pedido de Alta Costura"}
             </span>
-            <h2 className="font-serif font-bold text-2xl text-stone-950 dark:text-stone-50">
+            <h2 className="font-serif font-bold text-xl sm:text-2xl text-stone-950 dark:text-stone-50">
               {currentCatalogItem.title}
             </h2>
           </div>
@@ -1000,7 +1003,7 @@ export default function ProjectForm({
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-stone-200 dark:divide-stone-800">
           
           {/* LEFT 8 COLS: Progressive Sections */}
-          <div className="lg:col-span-8 p-6 sm:p-8 space-y-10 overflow-y-auto">
+          <div className="lg:col-span-8 p-4 sm:p-6 lg:p-8 space-y-8 lg:space-y-10 lg:overflow-y-auto">
             
             {formError && (
               <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 rounded-2xl text-xs text-red-700 dark:text-red-400 flex items-center gap-2">
@@ -2305,11 +2308,40 @@ export default function ProjectForm({
           </div>
 
           {/* RIGHT 4 COLS: Sticky Order Summary & Submit Actions */}
-          <div className="lg:col-span-4 p-6 sm:p-8 bg-stone-50/70 dark:bg-[#151311] flex flex-col justify-between space-y-6">
-            <div className="space-y-6">
+          <div className="lg:col-span-4 p-4 sm:p-6 lg:p-8 bg-stone-50/70 dark:bg-[#151311] flex flex-col justify-between space-y-4 lg:space-y-6">
+            
+            {/* VISTA MÓVIL (< lg): ENCABEZADO COMPACTO Y COLAPSADO POR DEFECTO */}
+            <div className="lg:hidden">
+              <button
+                type="button"
+                onClick={() => setIsMobileSummaryOpen((prev) => !prev)}
+                aria-expanded={isMobileSummaryOpen}
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-stone-100 transition-all cursor-pointer shadow-xs active:scale-[0.99] hover:border-amber-500/50"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-space font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                    Resumen del pedido
+                  </span>
+                  <span className="text-stone-300 dark:text-stone-600">·</span>
+                  <span className="font-mono text-xs font-bold text-stone-950 dark:text-stone-50">
+                    S/ {totalPricePEN}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400 font-bold">
+                  {isMobileSummaryOpen ? (
+                    <ChevronUp className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  )}
+                </div>
+              </button>
+            </div>
+
+            {/* DETALLES DEL RESUMEN: Desplegable en móvil, siempre visible e intacto en escritorio */}
+            <div className={`${isMobileSummaryOpen ? "block" : "hidden"} lg:block space-y-6 pt-1 lg:pt-0 animate-fade-in`}>
               
               <div className="space-y-2 border-b border-stone-200 dark:border-stone-800 pb-4">
-                <span className="text-xs font-space font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 block">
+                <span className="hidden lg:block text-xs font-space font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
                   Resumen del Pedido
                 </span>
                 <h4 className="font-serif font-bold text-xl text-stone-900 dark:text-stone-50">
@@ -2369,7 +2401,7 @@ export default function ProjectForm({
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-3 pt-6 border-t border-stone-200 dark:border-stone-800">
+            <div className="space-y-3 pt-4 lg:pt-6 border-t border-stone-200 dark:border-stone-800">
               {uploadSuccessSummary && (
                 <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 rounded-2xl text-xs text-emerald-800 dark:text-emerald-300 flex items-start gap-2 animate-fade-in">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
